@@ -155,16 +155,30 @@ plotly
 
 ```python
 # 자료구조·알고리즘 사용 부분에 반드시 주석 명시
+# 형식: # [자료구조: 이름] / # [알고리즘: 이름]
 
+# --- M1 대피소 배분 ---
+# [알고리즘: 헝가리안 알고리즘]
+def assign_shelters(cost_matrix):
+    ...
+
+# --- M2 확산 예측 ---
+# [자료구조: 2D 격자(Grid)]
+# [알고리즘: BFS 기반 확산 모델]
+def bfs_spread(grid, start):
+    ...
+
+# --- M3 부상자 이송 ---
 # [자료구조: 최소 힙(Min Heap)]
 import heapq
-
 # [알고리즘: 최단작업우선 스케줄링(SJF)]
 def sjf_schedule(patients):
     ...
 
-# [알고리즘: BFS 기반 확산 모델]
-def bfs_spread(grid, start):
+# --- M5 통신망 설계 ---
+# [자료구조: 유니온-파인드(Union-Find)]
+# [알고리즘: 최소신장트리(크루스칼)]
+def build_mst(edges):
     ...
 ```
 
