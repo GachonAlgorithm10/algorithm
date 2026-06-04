@@ -89,8 +89,8 @@ GachonAlgorithm10/
 │
 ├── module_m3_triage/           # 부상자 이송 모듈 (임성엽)
 │   ├── __init__.py
-│   ├── priority_queue.py       # Min Heap / SJF
-│   ├── optimizer.py            # 다목적 최적화
+│   ├── priority_queue.py       # Min Heap / 세그먼트 트리
+│   ├── optimizer.py            # 가중합 스코어링 / SJF
 │   └── ui_triage.py            # Streamlit UI
 │
 └── module_m5_network/          # 통신망 복구 모듈 (최의찬)
