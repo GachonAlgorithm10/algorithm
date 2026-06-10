@@ -4,10 +4,9 @@ Streamlit 메인 애플리케이션 — 4개 모듈 통합
 담당: 임성엽
 """
 import streamlit as st
-from modules.m1_shelter import shelter
-from modules.m2_spread import spread
-from modules.m3_triage import triage
-from modules.m5_network import network
+
+# 모듈 통합 규약: 각 모듈 __init__.py 에서 run() 진입점을 노출한다.
+from modules import m1_shelter, m2_spread, m3_triage, m5_network
 
 st.set_page_config(
     page_title="재난 대피 최적화 시스템",
@@ -27,13 +26,13 @@ tab1, tab2, tab3, tab4 = st.tabs([
 ])
 
 with tab1:
-    shelter.run()
+    m1_shelter.run()
 
 with tab2:
-    spread.run()
+    m2_spread.run()
 
 with tab3:
-    triage.run()
+    m3_triage.run()
 
 with tab4:
-    network.run()
+    m5_network.run()
