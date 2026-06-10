@@ -4,19 +4,13 @@ module_m5_network  (M5 · 비상 통신망 설계)
 담당: 최의찬 / GachonAlgorithm10
 ============================================================
 구성:
-  utils.py        — 공통 유틸리티: node_to_xy
   mst_kruskal.py  — 자료구조: Union-Find / 알고리즘: 크루스칼 MST
   tarjan.py       — 자료구조: 그래프 / 알고리즘: Tarjan 단절점 탐지
   ui_network.py   — Streamlit 화면
 
-app.py 통합 예시:
-  from module_m5_network import render_network_tab
-  with tab_m5:
-      render_network_tab()
-
-또는:
-  from module_m5_network import run
-  run()
+app.py 통합 규약:
+  from modules import m5_network
+  m5_network.run()
 """
 
 from .mst_kruskal import node_to_xy, UnionFind, build_mst, edge_rows

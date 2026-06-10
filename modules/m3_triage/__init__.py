@@ -1,17 +1,16 @@
 """
 ============================================================
-module_m3_triage  (M3 · 부상자 이송 우선순위 결정)
+modules.m3_triage  (M3 · 부상자 이송 우선순위 결정)
 담당: 임성엽 / GachonAlgorithm10
 ============================================================
 구성:
-  priority_queue.py  — 자료구조: Min Heap, 세그먼트 트리
-  optimizer.py       — 알고리즘: 가중합 스코어링, SJF + 배정/스케줄 로직
-  ui_triage.py       — Streamlit 화면
+  priority_queue.py — 자료구조: Min Heap, 세그먼트 트리
+  optimizer.py      — 알고리즘: 가중합 스코어링, SJF
+  ui_triage.py      — Streamlit 화면
 
-app.py 통합 예시:
-  from module_m3_triage import render_triage_tab
-  with tab_m3:
-      render_triage_tab()
+app.py 통합 규약:
+  from modules import m3_triage
+  m3_triage.run()
 """
 
 from .optimizer import (
@@ -26,6 +25,12 @@ from .optimizer import (
 from .priority_queue import MinPriorityQueue, SegmentTree
 from .ui_triage import render_triage_tab
 
+
+def run():
+    """app.py의 M3 탭 진입점."""
+    render_triage_tab()
+
+
 __all__ = [
     "Patient",
     "run_triage",
@@ -37,4 +42,5 @@ __all__ = [
     "MinPriorityQueue",
     "SegmentTree",
     "render_triage_tab",
+    "run",
 ]
