@@ -18,10 +18,9 @@ plt.rcParams['axes.unicode_minus'] = False
 
 
 def run():
-    st.title("M1 대피소 최적 수용량 배분 대시보드")
-    st.sidebar.header("시뮬레이션 제어")
-
-    st.info("좌표 데이터로 알고리즘을 시각화합니다.")
+    st.header("🏠 대피소 수용량 배분")
+    st.divider()
+    st.sidebar.header("⚙️ 시뮬레이션 설정")
 
     # UI 테스트용 가상 데이터 세팅 (시민 5명, 대피소 3곳)
     dummy_citizens = [
@@ -38,7 +37,9 @@ def run():
         {"id": "감마_대피소", "loc": (20, 25), "capacity": 2, "risk_score": 2.0, "current_population": 0}
     ]
 
-    if st.sidebar.button("최적 배정 알고리즘 가동"):
+    run_btn = st.sidebar.button("▶ 최적 배정 실행", key="shelter_run_btn", type="primary", use_container_width=True)
+
+    if run_btn:
         with st.spinner("헝가리안 알고리즘 연산 중..."):
             capacities = [s["capacity"] for s in dummy_shelters]
 
@@ -65,6 +66,8 @@ def run():
                     })
                 df_results = pd.DataFrame(result_data)
 
+                st.divider()
+                st.subheader("📊 결과")
                 col1, col2 = st.columns([3, 2])
 
                 with col1:
@@ -108,10 +111,12 @@ def run():
                     st.dataframe(df_results, use_container_width=True)
 
             except ValueError as ve:
-                st.warning(f"배정 한계 초과: {ve}")
-                st.info("시민 수가 대피소 정원보다 많습니다. 대피소를 추가하거나 인원을 조절해주세요.")
+                st.warning(f"⚠️ 배정 한계 초과: {ve}")
+                st.info("💡 시민 수가 대피소 정원보다 많습니다. 대피소를 추가하거나 인원을 조절해주세요.")
             except Exception as e:
-                st.error(f"알고리즘 연산 중 오류 발생: {e}")
+                st.error(f"🚨 알고리즘 연산 중 오류 발생: {e}")
+    else:
+        st.info("💡 왼쪽 사이드바에서 설정을 조정한 뒤 '실행' 버튼을 눌러주세요.")
 
 
 if __name__ == "__main__":

@@ -131,6 +131,6 @@ if __name__ == "__main__":
     spof_nodes = find_articulation_points(nodes, mst_edges)
 
     print("=" * 64)
-    print("M5 비상 통신망 설계 — SPOF 탐지 결과")
+    print("M5 비상 통신망 설계 - SPOF 탐지 결과")
     print("=" * 64)
     print("단일 장애점:", spof_nodes)
