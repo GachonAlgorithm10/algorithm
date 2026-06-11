@@ -29,7 +29,7 @@ class BFSFireSpread:
             x, y = node["grid_x"], node["grid_y"]
             self.population_matrix[y, x] = node["population_density"]
 
-def run_bfs(self, start_node_id, max_time=15):
+    def run_bfs(self, start_node_id, max_time=15):
         """[알고리즘] 큐(Queue) 자료구조 기반의 너비 우선 탐색(BFS) 화재 확산 시뮬레이션"""
         # 🔗 [연결부 매핑] 그래프 노드 ID -> 격자 좌표(x, y) 역산
         start_x = start_node_id % self.width

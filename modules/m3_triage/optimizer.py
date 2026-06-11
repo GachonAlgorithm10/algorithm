@@ -177,7 +177,7 @@ if __name__ == "__main__":
     result = run_triage(generate_sample_patients(n=12), ambulances)
 
     print("=" * 64)
-    print("M3 부상자 이송 우선순위 — 배정/스케줄 결과")
+    print("M3 부상자 이송 우선순위 - 배정/스케줄 결과")
     print("=" * 64)
     print(f"{'구급차':<6}{'순서':<5}{'환자':<5}{'중증도':<6}{'대기':<6}{'이송':<6}{'점수':<8}")
     print("-" * 64)

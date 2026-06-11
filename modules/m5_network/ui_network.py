@@ -58,22 +58,26 @@ def render_network_tab():
     """app.py 의 M5 탭에서 이 함수를 호출한다."""
     import streamlit as st
 
-    st.subheader("M5 · 비상 통신망 설계")
-    st.caption("복구 비용 그래프 → 크루스칼 MST 구축 → Tarjan 단절점(SPOF) 탐지")
+    st.header("📡 비상 통신망 설계")
+    st.divider()
 
     nodes, edges = generate_sample_network()
 
-    st.markdown("#### 거점 노드")
-    st.write(nodes)
+    # --- 사이드바 입력 데이터 ---
+    st.sidebar.header("⚙️ 시뮬레이션 설정")
+    st.sidebar.markdown("#### 거점 노드")
+    st.sidebar.write(nodes)
+    st.sidebar.caption("M2 연동 기준: node_id = y * 60 + x")
+    st.sidebar.markdown("#### 복구 후보 간선")
+    st.sidebar.dataframe(edge_rows(edges), use_container_width=True)
+    run_btn = st.sidebar.button("▶ 통신망 설계 실행", key="network_run_btn", type="primary", use_container_width=True)
 
-    st.info("M2 연동 기준: node_id = y * 60 + x")
-
-    st.markdown("#### 복구 후보 간선")
-    st.dataframe(edge_rows(edges), use_container_width=True)
-
-    if st.button("비상 통신망 설계 실행"):
+    if run_btn:
         # [알고리즘: 크루스칼 알고리즘]
         mst_edges, total_cost, is_connected = build_mst(nodes, edges)
+
+        st.divider()
+        st.subheader("📊 결과")
 
         st.markdown("#### 최소 비용 복구 통신망 MST")
         st.dataframe(edge_rows(mst_edges), use_container_width=True)
@@ -83,7 +87,7 @@ def render_network_tab():
 
         st.markdown("#### 연결 상태")
         if is_connected:
-            st.success("모든 거점이 최소 비용 복구 통신망으로 연결되었습니다.")
+            st.success("✅ 모든 거점이 최소 비용 복구 통신망으로 연결되었습니다.")
 
             # [알고리즘: Tarjan 단절점 탐지]
             # MST 기준으로 SPOF를 탐지한다.
@@ -91,14 +95,15 @@ def render_network_tab():
 
             st.markdown("#### 단일 장애점(SPOF) 탐지 결과")
             if spof_nodes:
-                st.warning("단일 장애점이 탐지되었습니다.")
+                st.warning("⚠️ 단일 장애점이 탐지되었습니다.")
                 st.dataframe(spof_rows(spof_nodes), use_container_width=True)
             else:
-                st.success("단일 장애점이 없습니다.")
-
+                st.success("✅ 단일 장애점이 없습니다.")
         else:
-            st.error("일부 거점이 연결되지 않았습니다. 후보 간선 데이터를 확인해야 합니다.")
-            st.info("비연결 그래프에서는 SPOF 탐지를 수행할 수 없습니다.")
+            st.error("🚨 일부 거점이 연결되지 않았습니다. 후보 간선 데이터를 확인해야 합니다.")
+            st.info("💡 비연결 그래프에서는 SPOF 탐지를 수행할 수 없습니다.")
+    else:
+        st.info("💡 왼쪽 사이드바에서 설정을 조정한 뒤 '실행' 버튼을 눌러주세요.")
 
 
 def run():

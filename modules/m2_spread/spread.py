@@ -1,3 +1,6 @@
+# [미사용] 이 파일은 초기 스켈레톤 버전입니다.
+# 실제 구현은 bfs_spread.py 및 cellular_automata.py를 사용하세요.
+# __init__.py와 ui_spread.py는 bfs_spread.py를 참조합니다.
 """
 M2 위험 구역 확산 예측 모듈
 담당: 나하림

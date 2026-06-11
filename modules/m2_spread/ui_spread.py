@@ -24,8 +24,9 @@ def init_simulation_engine():
 
 def run():
     """ M2 모듈 메인 실행 함수"""
-    st.title("🔥 M2 화재 위험 구역 확산 예측 대시보드")
-    st.sidebar.header("🕹️ 시뮬레이션 제어 환경")
+    st.header("🔥 위험 구역 확산 예측")
+    st.divider()
+    st.sidebar.header("⚙️ 시뮬레이션 설정")
 
     try:
         bfs_engine = init_simulation_engine()
@@ -41,7 +42,9 @@ def run():
         max_time = st.sidebar.slider("최대 시뮬레이션 시간 (BFS 제한 시간)", 5, 30, 15)
         ca_turns = st.sidebar.slider("셀룰러 오토마타 예측 턴 (CA 반복 횟수)", 1, 10, 3)
 
-        if st.sidebar.button("시뮬레이션 가동"):
+        run_btn = st.sidebar.button("▶ 시뮬레이션 실행", key="spread_run_btn", type="primary", use_container_width=True)
+
+        if run_btn:
             with st.spinner("🔥 재난 확산 시뮬레이션 연산 중..."):
                 # 1단계: 인구 가중치 기반 기본 BFS 수행 (불길 도달 시간 맵 생성)
                 fire_time_map = bfs_engine.run_bfs(
@@ -73,6 +76,8 @@ def run():
                         final_hazard_map, wind_dir=wind_direction
                     )
 
+            st.divider()
+            st.subheader("📊 결과")
             # 결과 시각화 레이아웃 분할 (좌측: 그래프, 우측: 통계)
             col1, col2 = st.columns([2, 1])
 
@@ -118,6 +123,8 @@ def run():
             st.info(
                 "💡 [연동 정보] 각 격자점 정보는 node_id = (y * 60) + x 수식에 의해 타 모듈과 1:1 매핑 연동됩니다."
             )
+        else:
+            st.info("💡 왼쪽 사이드바에서 설정을 조정한 뒤 '실행' 버튼을 눌러주세요.")
 
     except Exception as e:
         st.error(

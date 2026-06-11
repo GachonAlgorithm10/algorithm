@@ -117,7 +117,7 @@ if __name__ == "__main__":
     mst_edges, total_cost, is_connected = build_mst(nodes, edges)
 
     print("=" * 64)
-    print("M5 비상 통신망 설계 — MST 결과")
+    print("M5 비상 통신망 설계 - MST 결과")
     print("=" * 64)
     print("선택된 복구 간선:", mst_edges)
     print("총 복구 비용:", total_cost)

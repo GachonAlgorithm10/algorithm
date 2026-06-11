@@ -1,5 +1,9 @@
 {
   "_comment": "나하림 preprocess.py 실행 후 이 파일이 실제 데이터로 교체됨. 아래는 형식 정의용 샘플.",
+  "simulation_settings": {
+    "grid_width": 60,
+    "grid_height": 60
+  },
   "nodes": [
     {
       "id": "node_001",
@@ -7,7 +11,10 @@
       "type": "shelter",
       "lat": 37.5636,
       "lng": 126.9976,
-      "capacity": 200
+      "capacity": 200,
+      "grid_x": 3,
+      "grid_y": 2,
+      "population_density": 100
     },
     {
       "id": "node_002",
@@ -15,7 +22,10 @@
       "type": "hospital",
       "lat": 37.5600,
       "lng": 127.0010,
-      "capacity": 80
+      "capacity": 80,
+      "grid_x": 3,
+      "grid_y": 4,
+      "population_density": 80
     },
     {
       "id": "node_003",
@@ -23,7 +33,10 @@
       "type": "hub",
       "lat": 37.5580,
       "lng": 126.9950,
-      "capacity": 0
+      "capacity": 0,
+      "grid_x": 1,
+      "grid_y": 3,
+      "population_density": 0
     }
   ],
   "edges": [

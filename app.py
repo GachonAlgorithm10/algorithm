@@ -14,25 +14,24 @@ st.set_page_config(
     layout="wide"
 )
 
+st.sidebar.title("🚨 재난 대응 시스템")
+menu = st.sidebar.radio("모듈 선택", [
+    "🏠 대피소 수용량 배분",
+    "🔥 위험 구역 확산 예측",
+    "🚑 부상자 이송 우선순위",
+    "📡 비상 통신망 설계",
+])
+st.sidebar.divider()
+
 st.title("🚨 대규모 재난 대피 및 물류 최적화 시스템")
 st.caption("가천대학교 알고리즘 기말 프로젝트 | Team GachonAlgorithm10")
 st.divider()
 
-tab1, tab2, tab3, tab4 = st.tabs([
-    "🏠 M1 대피소 배분",
-    "🔥 M2 위험 구역 확산",
-    "🚑 M3 부상자 이송",
-    "📡 M5 비상 통신망",
-])
-
-with tab1:
+if menu == "🏠 대피소 수용량 배분":
     m1_shelter.run()
-
-with tab2:
+elif menu == "🔥 위험 구역 확산 예측":
     m2_spread.run()
-
-with tab3:
+elif menu == "🚑 부상자 이송 우선순위":
     m3_triage.run()
-
-with tab4:
+elif menu == "📡 비상 통신망 설계":
     m5_network.run()
