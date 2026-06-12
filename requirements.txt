@@ -1,0 +1,11 @@
+# 재난 대피 최적화 시스템 의존 라이브러리
+# ※ 개발 환경 세팅 후 아래 명령어로 버전 고정할 것:
+#   pip freeze > requirements.txt
+
+streamlit==1.46.0
+numpy==1.26.2
+pandas==2.1.4
+scipy==1.16.3
+networkx==3.6.1
+plotly==6.8.0
+matplotlib==3.10.7

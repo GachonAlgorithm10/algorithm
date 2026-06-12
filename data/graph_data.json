@@ -1,0 +1,53 @@
+{
+  "_comment": "나하림 preprocess.py 실행 후 이 파일이 실제 데이터로 교체됨. 아래는 형식 정의용 샘플.",
+  "simulation_settings": {
+    "grid_width": 60,
+    "grid_height": 60
+  },
+  "nodes": [
+    {
+      "id": "node_001",
+      "name": "중구 대피소 A",
+      "type": "shelter",
+      "lat": 37.5636,
+      "lng": 126.9976,
+      "capacity": 200,
+      "grid_x": 3,
+      "grid_y": 2,
+      "population_density": 100
+    },
+    {
+      "id": "node_002",
+      "name": "중구 병원 B",
+      "type": "hospital",
+      "lat": 37.5600,
+      "lng": 127.0010,
+      "capacity": 80,
+      "grid_x": 3,
+      "grid_y": 4,
+      "population_density": 80
+    },
+    {
+      "id": "node_003",
+      "name": "중구 통신 허브 C",
+      "type": "hub",
+      "lat": 37.5580,
+      "lng": 126.9950,
+      "capacity": 0,
+      "grid_x": 1,
+      "grid_y": 3,
+      "population_density": 0
+    }
+  ],
+  "edges": [
+    { "from": "node_001", "to": "node_002", "distance": 0.8, "weight": 0.8 },
+    { "from": "node_002", "to": "node_003", "distance": 1.2, "weight": 1.2 },
+    { "from": "node_001", "to": "node_003", "distance": 1.5, "weight": 1.5 }
+  ],
+  "grid_mapping": {
+    "_comment": "M2 격자 좌표 ↔ 노드 id 매핑. 나하림·M2 담당 간 형식 합의 후 채울 것.",
+    "node_001": { "row": 2, "col": 3 },
+    "node_002": { "row": 4, "col": 3 },
+    "node_003": { "row": 3, "col": 1 }
+  }
+}
