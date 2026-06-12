@@ -12,23 +12,17 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # 헝가리안 알고리즘 — import 시도 후 인라인 fallback
 # ---------------------------------------------------------------------------
-# [알고리즘: 헝가리안 알고리즘 (Hungarian Algorithm)]
-# [자료구조: 이분 그래프 (Bipartite Graph)]
-# [자료구조: 2D 비용행렬 (Cost Matrix)]
-
 try:
     from modules.m1_shelter.shelter import _hungarian
 except Exception:
     try:
         from ..m1_shelter.shelter import _hungarian
     except Exception:
+        # [알고리즘: 헝가리안 알고리즘 (Hungarian Algorithm)]
+        # 포텐셜 기반 구현 — O(n·m²), scipy 미사용 순수 Python
         def _hungarian(cost: list) -> list:
-            """
-            [알고리즘: 헝가리안 알고리즘 (Hungarian Algorithm)]
-            n×m (n <= m) 비용 리스트에서 각 행에 최소 비용 열 배정.
-            포텐셜 기반 구현 — O(n · m²), scipy 미사용 순수 Python.
-            Returns: assignment[i] = j (0-indexed), 미배정 시 -1
-            """
+            """n×m (n <= m) 비용 리스트에서 각 행에 최소 비용 열 배정.
+            Returns: assignment[i] = j (0-indexed), 미배정 시 -1"""
             n = len(cost)
             if n == 0:
                 return []
@@ -140,11 +134,9 @@ def _normalize_cols(mat: np.ndarray) -> np.ndarray:
 def build_resource_cost_matrix(
     resources: list[Resource], sites: list[Site]
 ) -> np.ndarray:
-    """
-    [자료구조: 2D 비용행렬 (Cost Matrix)]
-    shape: (len(resources), len(sites))
-    최종: dist_norm×0.5 + risk_norm×0.3 + skill_norm×0.2
-    """
+    # [자료구조: 2D 비용행렬 (Cost Matrix)]
+    # shape: (len(resources), len(sites))
+    # 최종: dist_norm×0.5 + risk_norm×0.3 + skill_norm×0.2
     n, m = len(resources), len(sites)
     dist_mat = np.zeros((n, m), dtype=float)
     risk_mat = np.zeros((n, m), dtype=float)
@@ -180,11 +172,6 @@ def assign_resources(
     sites: list[Site],
     cost_matrix: np.ndarray,
 ) -> list[Resource]:
-    """
-    [알고리즘: 헝가리안 알고리즘 (Hungarian Algorithm)]
-    [자료구조: 이분 그래프 (Bipartite Graph)]
-    각 site를 demand만큼 가상 슬롯으로 복제 후 최적 배정 수행.
-    """
     # [자료구조: 이분 그래프 (Bipartite Graph)]
     # demand 기반 슬롯 복제 — site_map[slot] = 원래 site 인덱스
     site_map: list[int] = []
@@ -198,7 +185,7 @@ def assign_resources(
 
     n_res = len(resources)
 
-    # n <= m 조건 충족: 슬롯보다 자원이 많으면 dummy 슬롯(고비용) 추가
+    # 슬롯보다 자원이 많으면 dummy 슬롯(고비용) 추가해 n <= m 조건 충족
     dummy_slots = max(0, n_res - total_slots)
     DUMMY_COST = 1e9
 

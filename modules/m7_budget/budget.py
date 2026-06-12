@@ -45,16 +45,11 @@ class DamageZone:
 def knapsack_dp(
     zones: list[DamageZone], budget_million: int
 ) -> tuple[int, list[DamageZone]]:
-    """
-    [알고리즘: 0-1 배낭 문제 (0-1 Knapsack DP)]
-    [자료구조: 2D DP 테이블]
-    예산(budget_million)을 초과하지 않는 범위에서 weighted_effect 합 최대화.
-    """
     n = len(zones)
     W = max(1, round(budget_million / BUDGET_UNIT_KRW))
 
     # [자료구조: 2D DP 테이블]
-    # dp[i][w]: 첫 i개 구역 중 예산 w unit 이하로 얻을 수 있는 최대 효과
+    # dp[i][w]: 첫 i개 구역에서 예산 w unit 이하로 얻는 최대 효과
     dp: list[list[int]] = [[0] * (W + 1) for _ in range(n + 1)]
     keep: list[list[bool]] = [[False] * (W + 1) for _ in range(n + 1)]
 
@@ -194,8 +189,6 @@ if __name__ == "__main__":
     print(f"예산 잔여    : {result['budget_remain']} 백만 원")
     print(f"총 복구 효과 : {result['total_effect']}")
     print()
+    _sym = {"✅": "[O]", "—": "[-]"}
     for row in results_to_rows(result):
-        # ✅ → [O] 로 변환해 cp949 콘솔 인코딩 오류 방지
-        _map = {"✅": "[O]", "—": "[-]"}
-        display = {k: _map.get(v, v) for k, v in row.items()}
-        print(display)
+        print({k: _sym.get(v, v) for k, v in row.items()})

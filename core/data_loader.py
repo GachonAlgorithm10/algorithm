@@ -5,7 +5,6 @@ core/data_loader.py — 그래프·부가 데이터 로드 및 session_state 초
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from typing import Optional
 
@@ -29,9 +28,10 @@ SESSION_STATE_DEFAULTS: dict = {
     "budget_plan": [],     # [{zone_id, allocated, effect}]  — M7 생성
 }
 
-# [자료구조: 딕셔너리 / 리스트 — session_state 키-값 저장소]
+
 def init_session_state() -> None:
     """이미 값이 있는 키는 덮어쓰지 않는다. app.py 최상단에서 1회 호출."""
+    # [자료구조: 딕셔너리 / 리스트 — session_state 키-값 저장소]
     for key, default in SESSION_STATE_DEFAULTS.items():
         if key not in st.session_state:
             st.session_state[key] = default
@@ -129,9 +129,7 @@ class DataLoader:
     def _load_processed(self, filename: str) -> dict | list:
         path = self._dir / filename
         if not path.exists():
-            raise FileNotFoundError(
-                f"[DATA-02] {filename} not found: {path}"
-            )
+            raise FileNotFoundError(f"[DATA-02] {filename} not found: {path}")
         return self._load_json(path)
 
     @property

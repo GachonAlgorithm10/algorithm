@@ -7,8 +7,7 @@ M6 구호물자 수요 산정 — 그리디 배분 알고리즘
 from __future__ import annotations
 
 import heapq
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -63,10 +62,6 @@ def greedy_allocate(
     stock_food_kg: float,
     stock_med: float,
 ) -> list[ShelterDemand]:
-    """
-    [알고리즘: 그리디 배분 (Greedy Allocation)]
-    우선순위 높은 대피소부터 재고를 소진될 때까지 배분.
-    """
     # [자료구조: 우선순위 큐 (Priority Queue)]
     # (-priority_score, index) — 최대 힙을 최소 힙으로 구현
     heap: list[tuple[float, int]] = []
@@ -78,6 +73,7 @@ def greedy_allocate(
     remaining_med = stock_med
 
     # [알고리즘: 그리디 배분 (Greedy Allocation)]
+    # 우선순위 높은 대피소부터 재고를 소진될 때까지 배분
     while heap:
         if remaining_water <= 0 and remaining_food <= 0 and remaining_med <= 0:
             break
@@ -219,10 +215,7 @@ def results_to_rows(supply_demand_dict: dict) -> list[dict]:
 
 if __name__ == "__main__":
     sample_assign = generate_sample_shelter_assign(n=8, seed=42)
-    result = compute(
-        data={"shelter_assign": sample_assign},
-        params={},
-    )
+    result = compute(data={"shelter_assign": sample_assign}, params={})
     print("=== 총 수요 ===")
     print(result["total_need"])
     print("=== 총 배분 ===")
