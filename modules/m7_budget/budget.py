@@ -6,6 +6,7 @@ M7 복구 예산 최적 배분 — 0-1 배낭 문제 DP
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -35,7 +36,7 @@ class DamageZone:
 
     @property
     def cost_units(self) -> int:
-        return max(1, round(self.repair_cost_million / BUDGET_UNIT_KRW))
+        return max(1, math.ceil(self.repair_cost_million / BUDGET_UNIT_KRW))
 
 
 # ---------------------------------------------------------------------------
@@ -46,7 +47,7 @@ def knapsack_dp(
     zones: list[DamageZone], budget_million: int
 ) -> tuple[int, list[DamageZone]]:
     n = len(zones)
-    W = max(1, round(budget_million / BUDGET_UNIT_KRW))
+    W = max(1, math.floor(budget_million / BUDGET_UNIT_KRW))
 
     # [자료구조: 2D DP 테이블]
     # dp[i][w]: 첫 i개 구역에서 예산 w unit 이하로 얻는 최대 효과

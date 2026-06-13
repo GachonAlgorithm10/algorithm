@@ -34,7 +34,7 @@ def init_session_state() -> None:
     # [자료구조: 딕셔너리 / 리스트 — session_state 키-값 저장소]
     for key, default in SESSION_STATE_DEFAULTS.items():
         if key not in st.session_state:
-            st.session_state[key] = default
+            st.session_state[key] = default.copy() if isinstance(default, (dict, list)) else default
 
 
 # ---------------------------------------------------------------------------
