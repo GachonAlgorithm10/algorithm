@@ -1,0 +1,100 @@
+[
+  {
+    "id": "zone_001",
+    "node_id": "node_177",
+    "damage_area_m2": 10444,
+    "repair_cost_million": 510,
+    "repair_effect_score": 72
+  },
+  {
+    "id": "zone_002",
+    "node_id": "node_046",
+    "damage_area_m2": 22463,
+    "repair_cost_million": 822,
+    "repair_effect_score": 92
+  },
+  {
+    "id": "zone_003",
+    "node_id": "node_113",
+    "damage_area_m2": 16020,
+    "repair_cost_million": 517,
+    "repair_effect_score": 62
+  },
+  {
+    "id": "zone_004",
+    "node_id": "node_092",
+    "damage_area_m2": 4812,
+    "repair_cost_million": 202,
+    "repair_effect_score": 66
+  },
+  {
+    "id": "zone_005",
+    "node_id": "node_195",
+    "damage_area_m2": 6404,
+    "repair_cost_million": 251,
+    "repair_effect_score": 63
+  },
+  {
+    "id": "zone_006",
+    "node_id": "node_034",
+    "damage_area_m2": 2041,
+    "repair_cost_million": 94,
+    "repair_effect_score": 73
+  },
+  {
+    "id": "zone_007",
+    "node_id": "node_157",
+    "damage_area_m2": 11372,
+    "repair_cost_million": 371,
+    "repair_effect_score": 72
+  },
+  {
+    "id": "zone_008",
+    "node_id": "node_010",
+    "damage_area_m2": 8353,
+    "repair_cost_million": 410,
+    "repair_effect_score": 95
+  },
+  {
+    "id": "zone_009",
+    "node_id": "node_120",
+    "damage_area_m2": 3317,
+    "repair_cost_million": 114,
+    "repair_effect_score": 90
+  },
+  {
+    "id": "zone_010",
+    "node_id": "node_136",
+    "damage_area_m2": 20547,
+    "repair_cost_million": 1025,
+    "repair_effect_score": 82
+  },
+  {
+    "id": "zone_011",
+    "node_id": "node_218",
+    "damage_area_m2": 12963,
+    "repair_cost_million": 434,
+    "repair_effect_score": 76
+  },
+  {
+    "id": "zone_012",
+    "node_id": "node_150",
+    "damage_area_m2": 22971,
+    "repair_cost_million": 769,
+    "repair_effect_score": 96
+  },
+  {
+    "id": "zone_013",
+    "node_id": "node_053",
+    "damage_area_m2": 20373,
+    "repair_cost_million": 759,
+    "repair_effect_score": 82
+  },
+  {
+    "id": "zone_014",
+    "node_id": "node_107",
+    "damage_area_m2": 5905,
+    "repair_cost_million": 256,
+    "repair_effect_score": 94
+  }
+]

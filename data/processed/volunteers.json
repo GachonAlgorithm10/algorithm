@@ -1,0 +1,194 @@
+[
+  {
+    "id": "v001",
+    "type": "equipment",
+    "location_node": "node_202",
+    "skill": "ambulance"
+  },
+  {
+    "id": "v002",
+    "type": "equipment",
+    "location_node": "node_216",
+    "skill": "excavator"
+  },
+  {
+    "id": "v003",
+    "type": "volunteer",
+    "location_node": "node_130",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v004",
+    "type": "volunteer",
+    "location_node": "node_205",
+    "skill": "logistics"
+  },
+  {
+    "id": "v005",
+    "type": "volunteer",
+    "location_node": "node_145",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v006",
+    "type": "equipment",
+    "location_node": "node_094",
+    "skill": "generator"
+  },
+  {
+    "id": "v007",
+    "type": "equipment",
+    "location_node": "node_131",
+    "skill": "ambulance"
+  },
+  {
+    "id": "v008",
+    "type": "volunteer",
+    "location_node": "node_055",
+    "skill": "search_rescue"
+  },
+  {
+    "id": "v009",
+    "type": "equipment",
+    "location_node": "node_032",
+    "skill": "fire_truck"
+  },
+  {
+    "id": "v010",
+    "type": "volunteer",
+    "location_node": "node_070",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v011",
+    "type": "equipment",
+    "location_node": "node_030",
+    "skill": "fire_truck"
+  },
+  {
+    "id": "v012",
+    "type": "volunteer",
+    "location_node": "node_091",
+    "skill": "first_aid"
+  },
+  {
+    "id": "v013",
+    "type": "equipment",
+    "location_node": "node_033",
+    "skill": "ambulance"
+  },
+  {
+    "id": "v014",
+    "type": "equipment",
+    "location_node": "node_208",
+    "skill": "ambulance"
+  },
+  {
+    "id": "v015",
+    "type": "equipment",
+    "location_node": "node_145",
+    "skill": "generator"
+  },
+  {
+    "id": "v016",
+    "type": "equipment",
+    "location_node": "node_158",
+    "skill": "ambulance"
+  },
+  {
+    "id": "v017",
+    "type": "equipment",
+    "location_node": "node_151",
+    "skill": "fire_truck"
+  },
+  {
+    "id": "v018",
+    "type": "volunteer",
+    "location_node": "node_050",
+    "skill": "search_rescue"
+  },
+  {
+    "id": "v019",
+    "type": "equipment",
+    "location_node": "node_092",
+    "skill": "ambulance"
+  },
+  {
+    "id": "v020",
+    "type": "volunteer",
+    "location_node": "node_148",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v021",
+    "type": "volunteer",
+    "location_node": "node_200",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v022",
+    "type": "equipment",
+    "location_node": "node_025",
+    "skill": "generator"
+  },
+  {
+    "id": "v023",
+    "type": "volunteer",
+    "location_node": "node_176",
+    "skill": "logistics"
+  },
+  {
+    "id": "v024",
+    "type": "volunteer",
+    "location_node": "node_113",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v025",
+    "type": "volunteer",
+    "location_node": "node_166",
+    "skill": "first_aid"
+  },
+  {
+    "id": "v026",
+    "type": "equipment",
+    "location_node": "node_159",
+    "skill": "fire_truck"
+  },
+  {
+    "id": "v027",
+    "type": "volunteer",
+    "location_node": "node_015",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v028",
+    "type": "equipment",
+    "location_node": "node_208",
+    "skill": "generator"
+  },
+  {
+    "id": "v029",
+    "type": "volunteer",
+    "location_node": "node_193",
+    "skill": "psychological_support"
+  },
+  {
+    "id": "v030",
+    "type": "volunteer",
+    "location_node": "node_204",
+    "skill": "first_aid"
+  },
+  {
+    "id": "v031",
+    "type": "volunteer",
+    "location_node": "node_181",
+    "skill": "search_rescue"
+  },
+  {
+    "id": "v032",
+    "type": "volunteer",
+    "location_node": "node_134",
+    "skill": "logistics"
+  }
+]
