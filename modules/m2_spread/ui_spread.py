@@ -76,6 +76,17 @@ def run():
                         final_hazard_map, wind_dir=wind_direction
                     )
 
+            HAZARD_TO_RISK = {0: 0.0, 1: 0.33, 2: 0.67, 3: 1.0}
+            risk_map = {}
+            for node in bfs_engine.raw_data["nodes"]:
+                gx, gy, nid = node.get("grid_x"), node.get("grid_y"), node.get("id")
+                if gx is None or gy is None or nid is None:
+                    continue
+                if 0 <= gy < final_hazard_map.shape[0] and 0 <= gx < final_hazard_map.shape[1]:
+                    risk_map[nid] = HAZARD_TO_RISK.get(int(final_hazard_map[gy, gx]), 0.0)
+            st.session_state["risk_map"] = risk_map
+            st.success(f"✅ risk_map 저장 완료 — {len(risk_map)}개 노드")
+
             st.divider()
             st.subheader("📊 결과")
             # 결과 시각화 레이아웃 분할 (좌측: 그래프, 우측: 통계)
