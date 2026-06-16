@@ -164,10 +164,6 @@ def get_node_population_density(grid_x: int, grid_y: int, density_map: dict, sea
 def load_raw_data(filepath: str) -> pd.DataFrame:
     """
     공공데이터포털 및 기관 제공 CSV 로드 (다중 인코딩 대응 적용).
-    Args:
-        filepath: raw CSV 경로 (예: data/raw/shelter.csv)
-    Returns:
-        pd.DataFrame
     """
     encodings = ['cp949', 'utf-8-sig', 'euc-kr', 'utf-8']
     for enc in encodings:
@@ -182,22 +178,7 @@ def load_raw_data(filepath: str) -> pd.DataFrame:
 
 def build_graph(shelter_path: str, hospital_path: str, population_path: str, nodelink_path: str = 'nodelink/MOCT_LINK.shp') -> dict:
     """
-    [자료구조: 인접 리스트 딕셔너리]
     각 인프라 데이터 및 격자 데이터를 융합하여 정합성 있는 시뮬레이션 graph_data 구조를 생성합니다.
-
-    Args:
-        shelter_path: 민방위 대피소 파일 경로
-        hospital_path: 병원 정보 파일 경로
-        population_path: 생활인구 격자 파일 경로
-        nodelink_path: 국토교통부 도로망 링크 공간데이터 경로
-
-    Returns:
-        dict: {
-            "simulation_settings": {"grid_width", "grid_height"},
-            "nodes": [{"id", "name", "type", "lat", "lng", "capacity", "grid_x", "grid_y", "population_density"}, ...],
-            "edges": [{"from", "to", "distance", "weight"}, ...],
-            "grid_mapping": {"node_id": {"row": int, "col": int}, ...}
-        }
     """
     print(f"🎯 {REGION} 100% 매핑 데이터 최적화 정합 처리를 시작합니다.")
     
@@ -232,14 +213,25 @@ def build_graph(shelter_path: str, hospital_path: str, population_path: str, nod
     except Exception as e:
         print(f"❌ 대피소 데이터 처리 실패: {e}")
 
-    # 2. 병원 데이터 통합
+    # 2. 병원 데이터 통합 [★ 수정 포인트 1: 공백 및 문자열 오류 완벽 방어]
     pre_hospital_count = len(raw_infra)
     try:
          hospital_df = load_raw_data(hospital_path)
          print(f"🏥 {REGION} 병원 데이터 파싱: 총 {len(hospital_df)}개 분석 중...")
+         success_hospital = 0
          for _, row in hospital_df.iterrows():
              if pd.isna(row['좌표정보(X)']) or pd.isna(row['좌표정보(Y)']): continue
-             tm_x, tm_y = float(str(row['좌표정보(X)']).strip()), float(str(row['좌표정보(Y)']).strip())
+             
+             x_str = str(row['좌표정보(X)']).strip()
+             y_str = str(row['좌표정보(Y)']).strip()
+             if x_str == '' or y_str == '': continue
+             
+             # 수치 문자열 변환 검증 프로세스 추가
+             try:
+                 tm_x, tm_y = float(x_str), float(y_str)
+             except ValueError:
+                 continue # 변환 에러 유발 행은 통과 시킴
+                 
              lng, lat = transformer.transform(tm_x, tm_y)
              c, r = to_grid_cell_real(lat, lng)
              raw_infra.append({
@@ -248,7 +240,8 @@ def build_graph(shelter_path: str, hospital_path: str, population_path: str, nod
                  "capacity": int(row['병상수']) if not pd.isna(row['병상수']) else 45,
                  "grid_x": c, "grid_y": r
              })
-         print(f"✅ 병원 {len(raw_infra) - pre_hospital_count}개 노드 바인딩 적재 성공!")
+             success_hospital += 1
+         print(f"✅ 병원 {success_hospital}개 노드 바인딩 적재 성공!")
     except Exception as e:
          print(f"⚠️ 병원 데이터 처리 실패: {e}")
 
@@ -263,22 +256,26 @@ def build_graph(shelter_path: str, hospital_path: str, population_path: str, nod
             "grid_x": info["grid_x"], "grid_y": info["grid_y"],
             "population_density": pop_density
         })
-        # M2 격자 좌표 ↔ 노드 ID 매핑 규격 적용
         graph["grid_mapping"][node_str_id] = {
             "row": info["grid_y"], "col": info["grid_x"]
         }
 
-    # 4. 엣지(도로망 간선) 생성
+    # 4. 엣지(도로망 간선) 생성 [★ 수정 포인트 2: 좌표계 선 변환 후 공간 필터링 처리]
     nodes = graph["nodes"]
     
     if gpd is not None and os.path.exists(nodelink_path):
         try:
-            print("🛣️ [노드링크 연동] 전국 데이터에서 송파구 BBox 경계면만 잘라냅니다...")
-            songpa_bbox = (SONGPA_MIN_LNG, SONGPA_MIN_LAT, SONGPA_MAX_LNG, SONGPA_MAX_LAT)
-            roads = gpd.read_file(nodelink_path, bbox=songpa_bbox)
-            if roads.crs is None or roads.crs.to_string() != "EPSG:4326":
-                roads = roads.to_crs("EPSG:4326")
-            print(f"✂️ 필터링 완료: {REGION} 내 도로 링크 {len(roads)}개 확보.")
+            print("🛣️ [노드링크 연동] 전국 도로 데이터 로드 및 좌표계 정합 변환 중...")
+            roads_all = gpd.read_file(nodelink_path)
+            
+            # 1) 전체 도로 데이터 좌표계를 위경도(EPSG:4326)로 전격 통합 변환
+            if roads_all.crs is None or roads_all.crs.to_string() != "EPSG:4326":
+                roads_all = roads_all.to_crs("EPSG:4326")
+            
+            print(f"✂️ 변환된 데이터셋 기반 {REGION} 공간 바운딩 필터링 수행 중...")
+            # 2) 위경도 단위 상태에서 송파구 바운딩 박스 슬라이싱 진행
+            roads = roads_all.cx[SONGPA_MIN_LNG:SONGPA_MAX_LNG, SONGPA_MIN_LAT:SONGPA_MAX_LAT]
+            print(f"✂️ 필터링 완료: {REGION} 내 실제 도로 링크 {len(roads)}개 확보.")
             
             for i in range(len(nodes)):
                 for j in range(i + 1, len(nodes)):
@@ -293,9 +290,9 @@ def build_graph(shelter_path: str, hospital_path: str, population_path: str, nod
                             "from": nodes[i]["id"], "to": nodes[j]["id"],
                             "distance": dist, "weight": round(dist * weight_modifier, 2)
                         })
-            print(f"✅ 도로 기반 간선 {len(graph['edges'])}개 결합 완료!")
+            print(f"✅ 실제 도로 기반 간선 {len(graph['edges'])}개 결합 완료!")
         except Exception as e:
-            print(f"⚠️ 노드링크 연산 실패 (직선거리 대체): {e}")
+            print(f"⚠️ 노드링크 연산 실패 (직선거리 대체 로직 가동): {e}")
             for i in range(len(nodes)):
                 for j in range(i + 1, len(nodes)):
                     dist = get_haversine_distance(nodes[i]["lat"], nodes[i]["lng"], nodes[j]["lat"], nodes[j]["lng"])
@@ -320,7 +317,6 @@ def build_graph(shelter_path: str, hospital_path: str, population_path: str, nod
 
 def save_graph_data(graph: dict, output_path: str = "data/graph_data.json") -> None:
     """graph_data.json으로 전처리 결과를 정형 저장합니다."""
-    # 출력 디렉토리 자동 생성
     dir_name = os.path.dirname(output_path)
     if dir_name and not os.path.exists(dir_name):
         os.makedirs(dir_name, exist_ok=True)
@@ -339,8 +335,7 @@ if __name__ == "__main__":
     
     OUTPUT_JSON = f"data/{REGION}_simulation_data.json"
 
-    # 2. 통합 전처리 프로세스 가동 (이전 코드 skeleton 구조 계승)
-    # 각 CSV 인코딩 자동 처리 로직이 내장된 build_graph 실행
+    # 2. 통합 전처리 프로세스 가동 
     graph_data = build_graph(
         shelter_path=SHELTER_CSV,
         hospital_path=HOSPITAL_CSV,
