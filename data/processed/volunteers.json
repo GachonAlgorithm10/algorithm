@@ -1,0 +1,250 @@
+{
+  "_comment": [
+    "생성 기준: 자원봉사자 25건 + 구조장비 15건, 총 40건",
+    "type: volunteer | equipment",
+    "skill 분포: first_aid(25%), rescue(20%), logistics(18%), medical(15%), communication(10%), heavy_equipment(12%)",
+    "location_node: graph_data.json 전체 노드(node_001~node_224)에서 분산 배치"
+  ],
+  "volunteers": [
+    {
+      "id": "v001",
+      "type": "volunteer",
+      "location_node": "node_028",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v002",
+      "type": "volunteer",
+      "location_node": "node_223",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v003",
+      "type": "volunteer",
+      "location_node": "node_161",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v004",
+      "type": "volunteer",
+      "location_node": "node_077",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v005",
+      "type": "volunteer",
+      "location_node": "node_216",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v006",
+      "type": "volunteer",
+      "location_node": "node_164",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v007",
+      "type": "volunteer",
+      "location_node": "node_130",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v008",
+      "type": "volunteer",
+      "location_node": "node_156",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v009",
+      "type": "volunteer",
+      "location_node": "node_051",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v010",
+      "type": "volunteer",
+      "location_node": "node_040",
+      "skill": "first_aid"
+    },
+    {
+      "id": "v011",
+      "type": "volunteer",
+      "location_node": "node_096",
+      "skill": "rescue"
+    },
+    {
+      "id": "v012",
+      "type": "volunteer",
+      "location_node": "node_196",
+      "skill": "rescue"
+    },
+    {
+      "id": "v013",
+      "type": "volunteer",
+      "location_node": "node_042",
+      "skill": "rescue"
+    },
+    {
+      "id": "v014",
+      "type": "volunteer",
+      "location_node": "node_139",
+      "skill": "rescue"
+    },
+    {
+      "id": "v015",
+      "type": "volunteer",
+      "location_node": "node_200",
+      "skill": "rescue"
+    },
+    {
+      "id": "v016",
+      "type": "volunteer",
+      "location_node": "node_136",
+      "skill": "rescue"
+    },
+    {
+      "id": "v017",
+      "type": "volunteer",
+      "location_node": "node_001",
+      "skill": "rescue"
+    },
+    {
+      "id": "v018",
+      "type": "volunteer",
+      "location_node": "node_154",
+      "skill": "rescue"
+    },
+    {
+      "id": "v019",
+      "type": "volunteer",
+      "location_node": "node_083",
+      "skill": "logistics"
+    },
+    {
+      "id": "v020",
+      "type": "volunteer",
+      "location_node": "node_126",
+      "skill": "logistics"
+    },
+    {
+      "id": "v021",
+      "type": "volunteer",
+      "location_node": "node_005",
+      "skill": "logistics"
+    },
+    {
+      "id": "v022",
+      "type": "volunteer",
+      "location_node": "node_029",
+      "skill": "logistics"
+    },
+    {
+      "id": "v023",
+      "type": "volunteer",
+      "location_node": "node_093",
+      "skill": "logistics"
+    },
+    {
+      "id": "v024",
+      "type": "volunteer",
+      "location_node": "node_213",
+      "skill": "logistics"
+    },
+    {
+      "id": "v025",
+      "type": "volunteer",
+      "location_node": "node_207",
+      "skill": "logistics"
+    },
+    {
+      "id": "v026",
+      "type": "equipment",
+      "location_node": "node_079",
+      "skill": "stretcher"
+    },
+    {
+      "id": "v027",
+      "type": "equipment",
+      "location_node": "node_062",
+      "skill": "defibrillator"
+    },
+    {
+      "id": "v028",
+      "type": "equipment",
+      "location_node": "node_015",
+      "skill": "generator"
+    },
+    {
+      "id": "v029",
+      "type": "equipment",
+      "location_node": "node_062",
+      "skill": "water_purifier"
+    },
+    {
+      "id": "v030",
+      "type": "equipment",
+      "location_node": "node_146",
+      "skill": "tent"
+    },
+    {
+      "id": "v031",
+      "type": "equipment",
+      "location_node": "node_021",
+      "skill": "excavator"
+    },
+    {
+      "id": "v032",
+      "type": "equipment",
+      "location_node": "node_022",
+      "skill": "ambulance"
+    },
+    {
+      "id": "v033",
+      "type": "equipment",
+      "location_node": "node_188",
+      "skill": "radio_kit"
+    },
+    {
+      "id": "v034",
+      "type": "equipment",
+      "location_node": "node_125",
+      "skill": "first_aid_kit"
+    },
+    {
+      "id": "v035",
+      "type": "equipment",
+      "location_node": "node_209",
+      "skill": "floodlight"
+    },
+    {
+      "id": "v036",
+      "type": "equipment",
+      "location_node": "node_018",
+      "skill": "forklift"
+    },
+    {
+      "id": "v037",
+      "type": "equipment",
+      "location_node": "node_195",
+      "skill": "drone"
+    },
+    {
+      "id": "v038",
+      "type": "equipment",
+      "location_node": "node_137",
+      "skill": "chainsaw"
+    },
+    {
+      "id": "v039",
+      "type": "equipment",
+      "location_node": "node_197",
+      "skill": "pump"
+    },
+    {
+      "id": "v040",
+      "type": "equipment",
+      "location_node": "node_033",
+      "skill": "satellite_phone"
+    }
+  ]
+}
