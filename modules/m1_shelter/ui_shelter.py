@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from core.map_util import render_module_guide
+
 # [알고리즘: 이분 매칭, 헝가리안 알고리즘]
 # [자료구조: 이분 그래프, 2D 비용행렬]
 try:
@@ -18,8 +20,6 @@ plt.rcParams['axes.unicode_minus'] = False
 
 
 def run():
-    st.header("🏠 대피소 수용량 배분")
-    st.divider()
     st.sidebar.header("⚙️ 시뮬레이션 설정")
 
     # UI 테스트용 가상 데이터 세팅 (시민 5명, 대피소 3곳)
@@ -47,6 +47,8 @@ def run():
                 # [알고리즘: 헝가리안 알고리즘] 비용 행렬 생성 후 최적 배정
                 cost_mat = build_cost_matrix(dummy_citizens, dummy_shelters, {})
                 match_results = bipartite_matching(cost_mat, capacities)
+
+                st.session_state["shelter_assign"] = match_results
 
                 result_data = []
                 for c_idx, s_idx, count in match_results:
@@ -116,7 +118,23 @@ def run():
             except Exception as e:
                 st.error(f"🚨 알고리즘 연산 중 오류 발생: {e}")
     else:
-        st.info("💡 왼쪽 사이드바에서 설정을 조정한 뒤 '실행' 버튼을 눌러주세요.")
+        st.write("")
+        st.markdown("#### 📍 송파구 초기 거점 맵")
+
+        from core.map_util import render_status_badge, render_map
+
+        render_status_badge()
+        
+        dummy_nodes = {
+            "node_001": {"type": "shelter", "lat": 37.512, "lng": 127.102, "name": "송파 제1대피소", "capacity": 150},
+            "node_002": {"type": "shelter", "lat": 37.505, "lng": 127.110, "name": "송파 제2대피소", "capacity": 200},
+            "node_003": {"type": "hospital", "lat": 37.515, "lng": 127.095, "name": "송파 중앙병원", "capacity": 50}
+        }
+        render_map(dummy_nodes) 
+        
+        st.divider()
+
+        render_module_guide("M1")
 
 
 if __name__ == "__main__":
