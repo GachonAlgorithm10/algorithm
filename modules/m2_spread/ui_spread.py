@@ -20,8 +20,17 @@ def run():
         bfs_engine = init_simulation_engine()
         ca_engine = CellularAutomataModel(bfs_engine.width, bfs_engine.height)
 
-        start_node = st.sidebar.number_input(
-            "발화점 그래프 노드 ID (0~3599)", min_value=0, max_value=3599, value=1830
+        # 실제 노드 목록에서 발화점 선택 (id_to_coord 키와 일치)
+        node_options = [n["id"] for n in bfs_engine.raw_data["nodes"]]
+        node_labels = {
+            n["id"]: f'{n["id"]} · {n.get("name", "")}'
+            for n in bfs_engine.raw_data["nodes"]
+        }
+        start_node = st.sidebar.selectbox(
+            "발화점 노드 선택",
+            options=node_options,
+            format_func=lambda nid: node_labels.get(nid, nid),
+            index=0,
         )
         wind_direction = st.sidebar.selectbox(
             "기상 조건 (바람 방향)", ["무풍", "북풍", "남풍", "동풍", "서풍"]
