@@ -8,6 +8,7 @@ from core.map_util import render_module_guide
 
 try:
     from .resource import (
+        Resource,
         assign_resources,
         build_resource_cost_matrix,
         generate_sample_resources,
@@ -16,6 +17,7 @@ try:
     )
 except ImportError:
     from resource import (
+        Resource,
         assign_resources,
         build_resource_cost_matrix,
         generate_sample_resources,
@@ -24,12 +26,34 @@ except ImportError:
     )
 
 
+def _real_to_resource(raw: dict) -> Resource:
+    """실데이터 dict → Resource 객체 변환 어댑터.
+    실데이터 키: id, type, location_node, skill
+    Resource 키: rid, rtype, skill, location_node, assigned_site, cost
+    """
+    return Resource(
+        rid=str(raw.get("id", "")),
+        rtype=str(raw.get("type", "volunteer")),
+        skill=str(raw.get("skill", "")),
+        location_node=str(raw.get("location_node", "node_001")),
+    )
+
+
 def run() -> None:
     # 사이드바 설정
     st.sidebar.header("⚙️ 시뮬레이션 설정")
-    n_resources = st.sidebar.slider("자원 수", min_value=4, max_value=30, value=10, key="m4_n_resources")
-    n_sites_val = st.sidebar.slider("현장 수", min_value=2, max_value=8, value=4, key="m4_n_sites")
 
+    data_source = st.sidebar.radio(
+        "데이터 소스 (자원)",
+        ["실데이터 (32건)", "더미 데이터"],
+        key="m4_data_source",
+    )
+    use_real = data_source == "실데이터 (32건)"
+
+    if not use_real:
+        n_resources = st.sidebar.slider("자원 수", min_value=4, max_value=30, value=10, key="m4_n_resources")
+
+    n_sites_val = st.sidebar.slider("현장 수", min_value=2, max_value=8, value=4, key="m4_n_sites")
     run_btn = st.sidebar.button("▶ 배치 최적화 실행", key="resource_run_btn", type="primary", use_container_width=True)
 
     if run_btn:
@@ -42,7 +66,17 @@ def run() -> None:
             st.info("💡 M2 위험구역 확산 예측을 먼저 실행하면 실제 재난 위험도가 반영됩니다.")
 
         with st.spinner("구조자원 최적 배치 연산 중..."):
-            resources = generate_sample_resources(n=n_resources, seed=42)
+            # 자원(봉사자/장비) 로드 — sites는 실데이터 없으므로 더미 유지
+            if use_real:
+                try:
+                    from core.data_loader import DataLoader
+                    resources = [_real_to_resource(r) for r in DataLoader().volunteers]
+                except Exception as e:
+                    st.warning(f"⚠️ 실데이터 로드 실패 — 더미 데이터로 대체합니다. ({e})")
+                    resources = generate_sample_resources(n=10, seed=42)
+            else:
+                resources = generate_sample_resources(n=n_resources, seed=42)
+
             sites = generate_sample_sites(n=n_sites_val, seed=7)
 
             # risk_map이 정상적인 딕셔너리일 때만 위험도 덮어쓰기

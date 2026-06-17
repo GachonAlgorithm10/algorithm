@@ -11,6 +11,21 @@ try:
 except ImportError:
     from budget import compute, generate_sample_zones, results_to_rows
 
+
+def _real_to_zone(raw: dict) -> dict:
+    """실데이터 dict → compute()가 기대하는 키로 변환 어댑터.
+    실데이터 키: id, node_id, damage_area_m2, repair_cost_million, repair_effect_score
+    compute 기대 키: zone_id, node_id, damage_area_m2, repair_cost_million, base_effect
+    """
+    return {
+        "zone_id": raw.get("id", raw.get("zone_id", "")),
+        "node_id": raw.get("node_id", ""),
+        "damage_area_m2": raw.get("damage_area_m2", 0),
+        "repair_cost_million": raw.get("repair_cost_million", 100),
+        "base_effect": raw.get("repair_effect_score", raw.get("base_effect", 10)),
+    }
+
+
 def run() -> None:
     # 사이드바 설정
     st.sidebar.header("⚙️ 시뮬레이션 설정")
@@ -22,6 +37,13 @@ def run() -> None:
         step=500,
         key="m7_budget_million",
     )
+
+    data_source = st.sidebar.radio(
+        "데이터 소스",
+        ["실데이터 (14건)", "더미 데이터 (15건)"],
+        key="m7_data_source",
+    )
+    use_real = data_source == "실데이터 (14건)"
 
     run_btn = st.sidebar.button("▶ 예산 배분 최적화 실행", key="budget_run_btn", type="primary", use_container_width=True)
 
@@ -36,12 +58,19 @@ def run() -> None:
             st.info("💡 M2 위험구역 확산 예측을 먼저 실행하면 실제 위험도가 복구 효과에 반영됩니다.")
 
         with st.spinner("0-1 Knapsack DP 알고리즘 기반 예산 최적 배분 연산 중..."):
-            sample_zones = generate_sample_zones(n=15, seed=42)
+            if use_real:
+                try:
+                    from core.data_loader import DataLoader
+                    zones = [_real_to_zone(z) for z in DataLoader().damage_zones]
+                except Exception as e:
+                    st.warning(f"⚠️ 실데이터 로드 실패 — 더미 데이터로 대체합니다. ({e})")
+                    zones = generate_sample_zones(n=15, seed=42)
+            else:
+                zones = generate_sample_zones(n=15, seed=42)
 
             result = compute(
                 data={
-                    "damage_zones": sample_zones,
-                    # risk_map이 딕셔너리가 아니면 빈 딕셔너리로 넘김
+                    "damage_zones": zones,
                     "risk_map": risk_map if isinstance(risk_map, dict) else {}
                 },
                 params={"budget_million": budget_million},
