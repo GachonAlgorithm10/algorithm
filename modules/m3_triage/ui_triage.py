@@ -19,8 +19,7 @@ def render_triage_tab():
     """app.py 의 M3 탭에서 이 함수를 호출한다."""
     import streamlit as st
 
-    st.header("🚑 부상자 이송 우선순위")
-    st.divider()
+    from core.map_util import render_module_guide
 
     # --- 사이드바 입력 컨트롤 ---
     st.sidebar.header("⚙️ 시뮬레이션 설정")
@@ -41,6 +40,8 @@ def render_triage_tab():
         patients = generate_sample_patients(n=n_patients)
         result = run_triage(patients, ambulances)
 
+        st.session_state["transport_order"] = result
+
         # --- 결과 테이블 ---
         st.divider()
         st.subheader("📊 결과")
@@ -48,7 +49,8 @@ def render_triage_tab():
         st.info("💡 이송시간은 현재 시뮬레이션 값입니다. 통합 단계에서 "
                 "거리 util(graph_data 기반)의 실제 값으로 교체됩니다.")
     else:
-        st.info("💡 왼쪽 사이드바에서 설정을 조정한 뒤 '실행' 버튼을 눌러주세요.")
+        st.write("")
+        render_module_guide("M3")
 
 
 # 단독 실행 (streamlit run)
