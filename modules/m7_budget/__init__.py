@@ -12,7 +12,7 @@ from .budget import (
     knapsack_dp,
     results_to_rows,
 )
-from .ui_budget import render_budget_tab, run
+from .ui_budget import run
 
 __all__ = [
     "BUDGET_UNIT_KRW",

@@ -64,7 +64,6 @@ def render_network_tab():
     st.sidebar.header("⚙️ 시뮬레이션 설정")
     st.sidebar.markdown("#### 거점 노드")
     st.sidebar.write(nodes)
-    st.sidebar.caption("M2 연동 기준: node_id = y * 60 + x")
     st.sidebar.markdown("#### 복구 후보 간선")
     st.sidebar.dataframe(edge_rows(edges), use_container_width=True)
     run_btn = st.sidebar.button("▶ 통신망 설계 실행", key="network_run_btn", type="primary", use_container_width=True)

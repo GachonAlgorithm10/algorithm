@@ -34,7 +34,7 @@ def run():
 
         # UI 컴포넌트 배치
         start_node = st.sidebar.number_input(
-            "발화점 그래프 노드 ID (0~3599)", min_value=0, max_value=3599, value=1830
+            "발화점 그래프 노드 ID (0~255)", min_value=0, max_value=224, value=100
         )
         wind_direction = st.sidebar.selectbox(
             "기상 조건 (바람 방향)", ["무풍", "북풍", "남풍", "동풍", "서풍"]
@@ -50,7 +50,7 @@ def run():
             with st.spinner("🔥 재난 확산 시뮬레이션 연산 중..."):
                 # 1단계: 인구 가중치 기반 기본 BFS 수행 (불길 도달 시간 맵 생성)
                 fire_time_map = bfs_engine.run_bfs(
-                    start_node_id=start_node, max_time=max_time
+                    start_node_id=f"node_{start_node:03d}", max_time=max_time
                 )
 
                 # 2단계: BFS 시간 맵을 CA용 '위험도 레벨 격자(0~3)'로 변환
