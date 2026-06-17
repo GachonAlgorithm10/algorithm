@@ -103,7 +103,7 @@ def compute(data: dict, params: dict) -> dict:
     supplies_raw: dict = data.get("supplies", {})
 
     stock = supplies_raw.get(
-        "current_stock",
+        "total_stock",
         {"water_L": 500_000, "food_kg": 80_000, "med_unit": 20_000},
     )
     stock_water = float(stock.get("water_L", 500_000))

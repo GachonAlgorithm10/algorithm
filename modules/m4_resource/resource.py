@@ -118,7 +118,7 @@ def _get_preferred_skills(site_id: str) -> list:
     elif site_id.startswith("first_aid"):
         return ["first_aid", "search_rescue"]
     elif site_id.startswith("heavy"):
-        return ["heavy_equipment"]
+        return ["fire_truck", "logistics"]
     return []
 
 
@@ -284,7 +284,7 @@ def compute(data: dict, params: dict) -> dict:
 
 def generate_sample_resources(n: int = 10, seed: int = 42) -> list[Resource]:
     rng = np.random.default_rng(seed)
-    skills = ["first_aid", "search_rescue", "heavy_equipment", "logistics"]
+    skills = ["first_aid", "search_rescue", "fire_truck", "logistics"]
     return [
         Resource(
             rid=f"vol_{i + 1:03d}",
