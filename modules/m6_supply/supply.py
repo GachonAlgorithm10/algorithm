@@ -111,10 +111,19 @@ def compute(data: dict, params: dict) -> dict:
     stock_med = float(stock.get("med_unit", 20_000))
 
     # 대피소별 인원 집계
+    # NOTE: M1(김도현)이 shelter_assign을 {"shelter_id":..., "count":...} dict 형식으로
+    # 저장하기 전까지의 임시 방어 코드. 근본 수정은 M1 측에서 진행 필요.
     pop_map: dict[str, int] = {}
     for entry in shelter_assign:
-        sid = entry.get("shelter_id", "")
-        count = int(entry.get("count", 0))
+        if isinstance(entry, dict):
+            sid = entry.get("shelter_id", "")
+            count = int(entry.get("count", 0))
+        elif isinstance(entry, (tuple, list)) and len(entry) >= 3:
+            # M1 미수정 버전 호환: (citizen_idx, shelter_idx, count)
+            # shelter_idx만으로는 shelter_id를 알 수 없으므로 건너뜀
+            continue
+        else:
+            continue
         pop_map[sid] = pop_map.get(sid, 0) + count
 
     # shelter_assign 비어있으면 graph_nodes에서 더미 인원 생성
