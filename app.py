@@ -42,7 +42,7 @@ st.markdown("""
         }
         
         .stApp {
-            background-color: #f4f7f8;
+            background-color: var(--secondary-background-color);
         }
 
         /* 사이드바 여백 조절 및 팁 박스 제거를 위한 간소화 */
@@ -50,13 +50,14 @@ st.markdown("""
             padding-top: 2rem !important;
         }
         [data-testid="stSidebar"] {
-            background-color: #ffffff;
-            border-right: 1px solid #e2e8f0;
+            background-color: var(--background-color);
+            border-right: 1px solid var(--secondary-background-color);
         }
         div[role="radiogroup"] > label {
             padding: 0.8rem 1rem;
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
+            background-color: var(--background-color); 
+            color: var(--text-color) !important;
+            border: 1px solid var(--secondary-background-color);
             border-radius: 12px;
             margin-bottom: 0.5rem;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -66,13 +67,14 @@ st.markdown("""
         }
         div[role="radiogroup"] > label:hover {
             border-color: #3B82F6;
-            background-color: #eff6ff;
+            background-color: var(--secondary-background-color);
             transform: translateX(4px);
         }
 
         /* 메인 헤더 배너화 */
         .header-banner {
-            background: white;
+            background: var(--background-color);
+            color: var(--text-color);
             padding: 1.5rem 2rem;
             border-radius: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
@@ -82,19 +84,21 @@ st.markdown("""
         .main-title {
             font-weight: 800;
             font-size: 2rem;
-            color: #0f172a;
+            color: var(--text-color);
             margin-bottom: 0.2rem;
             letter-spacing: -0.5px;
         }
         .sub-title {
-            color: #64748b;
+            color: var(--text-color);
+            opacity: 0.7;
             font-size: 0.95rem;
             font-weight: 500;
         }
-        
+            
         [data-testid="stMetric"] {
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            border: 1px solid var(--secondary-background-color);
             padding: 1rem 1.2rem;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
@@ -103,6 +107,7 @@ st.markdown("""
         div[data-testid="stMetricValue"] {
             font-size: 1.6rem;
             font-weight: 800;
+            color: var(--text-color);
         }
     </style>
 """, unsafe_allow_html=True)
