@@ -16,7 +16,7 @@ from .supply import (
     greedy_allocate,
     results_to_rows,
 )
-from .ui_supply import render_supply_tab, run
+from .ui_supply import run
 
 __all__ = [
     "WATER_PER_PERSON_L",

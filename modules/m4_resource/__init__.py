@@ -14,7 +14,7 @@ from .resource import (
     generate_sample_sites,
     results_to_rows,
 )
-from .ui_resource import render_resource_tab, run
+from .ui_resource import run
 
 __all__ = [
     "Resource",

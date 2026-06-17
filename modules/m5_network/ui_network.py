@@ -15,7 +15,6 @@ except ImportError:
     from mst_kruskal import build_mst, edge_rows
     from tarjan import find_articulation_points, spof_rows
 
-
 def generate_sample_network():
     """
     M5 단독 실행/테스트용 통신망 데이터.
@@ -57,9 +56,7 @@ def generate_sample_network():
 def render_network_tab():
     """app.py 의 M5 탭에서 이 함수를 호출한다."""
     import streamlit as st
-
-    st.header("📡 비상 통신망 설계")
-    st.divider()
+    from core.map_util import render_module_guide
 
     nodes, edges = generate_sample_network()
 
@@ -67,12 +64,14 @@ def render_network_tab():
     st.sidebar.header("⚙️ 시뮬레이션 설정")
     st.sidebar.markdown("#### 거점 노드")
     st.sidebar.write(nodes)
-    st.sidebar.caption("M2 연동 기준: node_id = y * 60 + x")
     st.sidebar.markdown("#### 복구 후보 간선")
     st.sidebar.dataframe(edge_rows(edges), use_container_width=True)
     run_btn = st.sidebar.button("▶ 통신망 설계 실행", key="network_run_btn", type="primary", use_container_width=True)
 
     if run_btn:
+
+        st.session_state["network_plan"] = True
+
         # [알고리즘: 크루스칼 알고리즘]
         mst_edges, total_cost, is_connected = build_mst(nodes, edges)
 
@@ -103,7 +102,8 @@ def render_network_tab():
             st.error("🚨 일부 거점이 연결되지 않았습니다. 후보 간선 데이터를 확인해야 합니다.")
             st.info("💡 비연결 그래프에서는 SPOF 탐지를 수행할 수 없습니다.")
     else:
-        st.info("💡 왼쪽 사이드바에서 설정을 조정한 뒤 '실행' 버튼을 눌러주세요.")
+        st.write("")
+        render_module_guide("M5")
 
 
 def run():
