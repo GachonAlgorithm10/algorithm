@@ -136,7 +136,7 @@ class DataLoader:
     def patients(self) -> list:
         if "patients" not in self._cache:
             data = self._load_processed("patients.json")
-            self._cache["patients"] = data["patients"] if isinstance(data, dict) else data
+            self._cache["patients"] = data if isinstance(data, list) else data.get("patients", [])
         return self._cache["patients"]
 
     @property
@@ -185,5 +185,7 @@ if __name__ == "__main__":
         gd = loader.graph_data
         print(f"노드 수: {len(loader.nodes)}")
         print(f"엣지 수: {len(loader.edges)}")
+        patients = loader.patients
+        print(f"환자 수: {len(patients)}")
     except FileNotFoundError as e:
         print(f"경고: {e}")
