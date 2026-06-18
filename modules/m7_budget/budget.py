@@ -1,5 +1,5 @@
 # 담당: 임성엽 / GachonAlgorithm10
-# 데이터 출처: 송파구 피해 구역 실데이터 (damage_zones.json / data/processed/)
+# 데이터 출처: 송파구 피해 구역 시나리오(합성) 데이터 (damage_zones.json / data/processed/)
 # 데이터 출처: M2 risk_map (위험도 → 복구 효과 가중치)
 """
 M7 복구 예산 최적 배분 — 0-1 배낭 문제 DP

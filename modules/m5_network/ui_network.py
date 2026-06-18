@@ -11,6 +11,8 @@ app.py 통합: render_network_tab() 또는 run() 호출
 from core.data_loader import DataLoader
 
 import plotly.graph_objects as go
+import folium
+from streamlit_folium import st_folium
 from core.data_loader import get_loader
 from core.viz_util import style_fig, show
 
@@ -132,6 +134,33 @@ def _build_network_graph(node_ids, mst_edges, spof_set, pos, type_lookup):
     return style_fig(fig, height=620)
 
 
+def _build_network_map(node_ids, mst_edges, spof_set, node_lookup):
+    """MST 통신망을 송파구 실제 지도에 표시. 회색선=MST, 빨강=SPOF, 파랑=정상."""
+    m = folium.Map(location=[37.505, 127.115], zoom_start=13, tiles="cartodbpositron")
+    # MST 간선
+    for u, v, _ in mst_edges:
+        cu, cv = node_lookup.get(u), node_lookup.get(v)
+        if cu and cv:
+            folium.PolyLine([[cu["lat"], cu["lng"]], [cv["lat"], cv["lng"]]],
+                            color="#868E96", weight=1.5, opacity=0.5).add_to(m)
+    # 거점 노드
+    for nid in node_ids:
+        n = node_lookup.get(nid)
+        if not n:
+            continue
+        is_spof = nid in spof_set
+        name = n.get("name", nid)
+        type_ko = "병원" if n.get("type") == "hospital" else "대피소"
+        folium.CircleMarker(
+            [n["lat"], n["lng"]], radius=6 if is_spof else 4,
+            color="#E03131" if is_spof else "#1971C2", fill=True, fill_opacity=0.85,
+            popup=folium.Popup(
+                f"{name}<br>{type_ko}<br>{'⚠️ 단일 장애점' if is_spof else '정상 거점'}",
+                max_width=250),
+        ).add_to(m)
+    return m
+
+
 def render_network_tab():
     """app.py 의 M5 탭에서 이 함수를 호출한다."""
     import streamlit as st
@@ -205,14 +234,10 @@ def render_network_tab():
             st.session_state["network_plan"]["spof_nodes"] = spof_nodes
             spof_set = set(spof_nodes)
 
-            # 좌표 / 유형 매핑
-            if use_real:
-                _l = get_loader()
-                pos = {n["id"]: (n["grid_x"], n["grid_y"]) for n in _l.nodes}
-                type_lookup = {n["id"]: n.get("type", "") for n in _l.nodes}
-            else:
-                pos = {nid: (nid % 60, nid // 60) for nid in nodes}
-                type_lookup = {nid: "거점" for nid in nodes}
+            # 노드 정보 매핑 (좌표·이름·유형)
+            _l = get_loader()
+            node_lookup = {n["id"]: n for n in _l.nodes}
+            type_lookup = {nid: node_lookup.get(nid, {}).get("type", "") for nid in nodes}
 
             # KPI 카드
             c1, c2, c3, c4 = st.columns(4)
@@ -221,10 +246,11 @@ def render_network_tab():
             c3.metric("총 복구 비용", round(total_cost, 2))
             c4.metric("단일 장애점(SPOF)", f"{len(spof_nodes)} 개")
 
-            # 네트워크 그래프 (주요 시각물)
-            st.markdown("#### 최소 비용 복구 통신망")
-            st.caption("파란 노드=정상 거점, 빨간 노드=단일 장애점(장애 시 통신망 분리 위험). 노드에 마우스를 올리면 상세 정보가 표시됩니다.")
-            show(_build_network_graph(nodes, mst_edges, spof_set, pos, type_lookup))
+            # 송파구 지도 위 통신망 (주요 시각물)
+            st.markdown("#### 최소 비용 복구 통신망 (송파구 지도)")
+            st.caption("회색 선=복구 통신망(MST), 파란 점=정상 거점, 빨간 점=단일 장애점(장애 시 통신망 분리 위험). 점을 클릭하면 거점명이 표시됩니다.")
+            _net_map = _build_network_map(nodes, mst_edges, spof_set, node_lookup)
+            st_folium(_net_map, use_container_width=True, height=560, returned_objects=[])
 
             # 연결 상태 요약
             st.success("✅ 모든 거점이 최소 비용 복구 통신망으로 연결되었습니다.")
@@ -240,7 +266,9 @@ def render_network_tab():
                     st.dataframe(edge_rows(mst_edges), use_container_width=True)
                 st.markdown("**단일 장애점(SPOF) 목록**")
                 st.dataframe(
-                    [{"node_id": n, "유형": type_lookup.get(n, "")} for n in spof_nodes],
+                    [{"건물명": node_lookup.get(n, {}).get("name", n),
+                      "유형": "병원" if type_lookup.get(n) == "hospital" else "대피소",
+                      "node_id": n} for n in spof_nodes],
                     use_container_width=True, height=300,
                 )
     else:
