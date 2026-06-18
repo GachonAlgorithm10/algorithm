@@ -42,7 +42,7 @@ st.markdown("""
         }
         
         .stApp {
-            background-color: #f4f7f8;
+            background-color: var(--secondary-background-color);
         }
 
         /* 사이드바 여백 조절 및 팁 박스 제거를 위한 간소화 */
@@ -50,13 +50,14 @@ st.markdown("""
             padding-top: 2rem !important;
         }
         [data-testid="stSidebar"] {
-            background-color: #ffffff;
-            border-right: 1px solid #e2e8f0;
+            background-color: var(--background-color);
+            border-right: 1px solid var(--secondary-background-color);
         }
         div[role="radiogroup"] > label {
             padding: 0.8rem 1rem;
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
+            background-color: var(--background-color); 
+            color: var(--text-color) !important;
+            border: 1px solid var(--secondary-background-color);
             border-radius: 12px;
             margin-bottom: 0.5rem;
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
@@ -66,13 +67,14 @@ st.markdown("""
         }
         div[role="radiogroup"] > label:hover {
             border-color: #3B82F6;
-            background-color: #eff6ff;
+            background-color: var(--secondary-background-color);
             transform: translateX(4px);
         }
 
         /* 메인 헤더 배너화 */
         .header-banner {
-            background: white;
+            background: var(--background-color);
+            color: var(--text-color);
             padding: 1.5rem 2rem;
             border-radius: 16px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03);
@@ -82,19 +84,21 @@ st.markdown("""
         .main-title {
             font-weight: 800;
             font-size: 2rem;
-            color: #0f172a;
+            color: var(--text-color);
             margin-bottom: 0.2rem;
             letter-spacing: -0.5px;
         }
         .sub-title {
-            color: #64748b;
+            color: var(--text-color);
+            opacity: 0.7;
             font-size: 0.95rem;
             font-weight: 500;
         }
-        
+            
         [data-testid="stMetric"] {
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            border: 1px solid var(--secondary-background-color);
             padding: 1rem 1.2rem;
             border-radius: 12px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
@@ -103,6 +107,7 @@ st.markdown("""
         div[data-testid="stMetricValue"] {
             font-size: 1.6rem;
             font-weight: 800;
+            color: var(--text-color);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -130,24 +135,24 @@ if st.session_state["current_page"] == "HOME":
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 style='text-align: center; color: #0f172a; font-weight: 900; font-size: 3.5rem; letter-spacing: -1.5px;'>🚨 대규모 재난 대피 및 물류 최적화 시스템</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #64748b; font-size: 1.3rem; margin-bottom: 4rem;'>가천대학교 알고리즘 기말 프로젝트 | Team 알고싶조 <br><br>담당하시는 임무에 맞는 권한으로 시스템에 접속해 주십시오.</p>", unsafe_allow_html=True)
-    
+    st.markdown("<h1 style='text-align: center; color: var(--text-color); font-weight: 900; font-size: 3.5rem; letter-spacing: -1.5px;'>🚨 대규모 재난 대피 및 물류 최적화 시스템</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: var(--text-color); opacity: 0.6; font-size: 1.3rem; margin-bottom: 4rem;'>가천대학교 알고리즘 기말 프로젝트 | Team 알고싶조 <br><br>담당하시는 임무에 맞는 권한으로 시스템에 접속해 주십시오.</p>", unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         with st.container(border=True):
-            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #1E3A8A;'>public</span><h2 style='margin-top: 20px; color: #1E3A8A; font-weight: 800;'>통합 관제</h2><p style='color: #64748b; font-size: 1.1rem;'>재난 확산 및 전체 현황 모니터링</p></div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #3B82F6;'>public</span><h2 style='margin-top: 20px; color: var(--text-color); font-weight: 800;'>통합 관제</h2><p style='color: var(--text-color); opacity: 0.6; font-size: 1.1rem;'>재난 확산 및 전체 현황 모니터링</p></div>", unsafe_allow_html=True)
             st.button("접속하기", key="btn_role_1", use_container_width=True, type="primary", on_click=navigate_to, args=("M2",))
 
     with col2:
         with st.container(border=True):
-            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #1E3A8A;'>ambulance</span><h2 style='margin-top: 20px; color: #1E3A8A; font-weight: 800;'>대피·구호</h2><p style='color: #64748b; font-size: 1.1rem;'>대피소 배분 및 부상자 이송 스케줄링</p></div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #3B82F6;'>ambulance</span><h2 style='margin-top: 20px; color: var(--text-color); font-weight: 800;'>대피·구호</h2><p style='color: var(--text-color); opacity: 0.6; font-size: 1.1rem;'>대피소 배분 및 부상자 이송 스케줄링</p></div>", unsafe_allow_html=True)
             st.button("접속하기", key="btn_role_2", use_container_width=True, type="primary", on_click=navigate_to, args=("M1",))
 
     with col3:
         with st.container(border=True):
-            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #1E3A8A;'>router</span><h2 style='margin-top: 20px; color: #1E3A8A; font-weight: 800;'>복구 계획</h2><p style='color: #64748b; font-size: 1.1rem;'>비상 통신망 및 인프라 복구 설계</p></div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #3B82F6;'>router</span><h2 style='margin-top: 20px; color: var(--text-color); font-weight: 800;'>복구 계획</h2><p style='color: var(--text-color); opacity: 0.6; font-size: 1.1rem;'>비상 통신망 및 인프라 복구 설계</p></div>", unsafe_allow_html=True)
             st.button("접속하기", key="btn_role_3", use_container_width=True, type="primary", on_click=navigate_to, args=("M5",))
 
 else:

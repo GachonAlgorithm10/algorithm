@@ -3,9 +3,10 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
+import folium
+from streamlit_folium import st_folium
 
-from core.data_loader import DataLoader
+from core.data_loader import DataLoader, get_loader
 from core.map_util import render_module_guide
 
 # [알고리즘: 이분 매칭, 헝가리안 알고리즘]
@@ -14,10 +15,6 @@ try:
     from .shelter import build_cost_matrix, bipartite_matching
 except ImportError:
     from shelter import build_cost_matrix, bipartite_matching
-
-# 한글 폰트 깨짐 방지
-plt.rcParams['font.family'] = 'Malgun Gothic'  # 윈도우 기준
-plt.rcParams['axes.unicode_minus'] = False
 
 _DUMMY_CITIZENS = [
     {"id": "시민_1", "loc": (10, 10), "count": 1},
@@ -74,15 +71,33 @@ def _load_real_data(risk_map: dict):
     return citizens, shelters
 
 
+def _build_assignment_map(match_results, citizens, shelters, node_lookup):
+    """시민 그룹 → 배정 대피소 연결선을 송파구 지도에 표시."""
+    m = folium.Map(location=[37.505, 127.115], zoom_start=13, tiles="cartodbpositron")
+    drawn = set()
+    for c_idx, s_idx, count in match_results:
+        cid, sid = citizens[c_idx]["id"], shelters[s_idx]["id"]
+        cn, sn = node_lookup.get(cid), node_lookup.get(sid)
+        if not cn or not sn:
+            continue
+        folium.PolyLine([[cn["lat"], cn["lng"]], [sn["lat"], sn["lng"]]],
+                        color="#4C8BF5", weight=1.5, opacity=0.55, dash_array="4").add_to(m)
+        folium.CircleMarker([cn["lat"], cn["lng"]], radius=5, color="#1971C2",
+                            fill=True, fill_opacity=0.9,
+                            popup=folium.Popup(f"시민 그룹: {cid}<br>인원: {count}", max_width=250)).add_to(m)
+        if sid not in drawn:
+            cap = shelters[s_idx].get("capacity", 0)
+            folium.Marker([sn["lat"], sn["lng"]],
+                          icon=folium.Icon(color="red", icon="home", prefix="fa"),
+                          popup=folium.Popup(f"대피소: {sid}<br>수용량: {cap:,}명", max_width=250)).add_to(m)
+            drawn.add(sid)
+    return m
+
+
 def run():
     st.sidebar.header("⚙️ 시뮬레이션 설정")
 
-    data_source = st.sidebar.radio(
-        "데이터 소스",
-        ["실데이터", "더미 데이터"],
-        key="m1_data_source",
-    )
-    use_real = data_source == "실데이터"
+    use_real = True
 
     run_btn = st.sidebar.button("▶ 최적 배정 실행", key="shelter_run_btn", type="primary", use_container_width=True)
 
@@ -135,60 +150,29 @@ def run():
                     })
                 df_results = pd.DataFrame(result_data)
 
-                # 시각화: 실데이터는 상위 20 citizens + 상위 10 shelters(위험도 기준)만 scatter
-                if use_real:
-                    vis_citizens = citizens  # 이미 20개
-                    vis_shelters = sorted(shelters, key=lambda s: s["risk_score"], reverse=True)[:10]
-                else:
-                    vis_citizens = citizens
-                    vis_shelters = shelters
-                vis_shelter_ids = {s["id"] for s in vis_shelters}
+                match_rate = (len(match_results) / len(citizens) * 100 if citizens else 0.0)
+                used_shelters = len({shelters[s_idx]["id"] for _, s_idx, _ in match_results})
 
                 st.divider()
                 st.subheader("📊 결과")
-                col1, col2 = st.columns([3, 2])
+                st.success(
+                    f"✅ {len(citizens)}개 시민 그룹을 {used_shelters}개 대피소에 배정 완료 "
+                    f"(매칭률 {match_rate:.0f}%). 지도의 파란 선은 각 그룹이 이동해야 할 대피소를 가리킵니다."
+                )
 
-                with col1:
-                    st.subheader("배정 결과 시각화 (Map)")
-                    fig, ax = plt.subplots(figsize=(10, 7))
+                if use_real:
+                    node_lookup = {n["id"]: n for n in get_loader().nodes}
+                    fmap = _build_assignment_map(match_results, citizens, shelters, node_lookup)
+                    st_folium(fmap, use_container_width=True, height=520, returned_objects=[])
+                else:
+                    st.info("더미 모드는 실제 좌표가 없어 지도를 생략합니다. 아래 표에서 배정 결과를 확인하세요.")
 
-                    first_s = True
-                    for s in vis_shelters:
-                        ax.scatter(s["loc"][0], s["loc"][1], c='red', marker='s', s=150,
-                                   label='대피소' if first_s else "")
-                        first_s = False
-                        ax.text(s["loc"][0], s["loc"][1] + 1, s["id"], fontsize=7, ha='center')
+                k1, k2, k3 = st.columns(3)
+                k1.metric("시민 그룹", f"{len(citizens)} 개")
+                k2.metric("배정 대피소", f"{used_shelters} 곳")
+                k3.metric("알고리즘 매칭률", f"{match_rate:.1f}%")
 
-                    first_c = True
-                    for c in vis_citizens:
-                        ax.scatter(c["loc"][0], c["loc"][1], c='blue', marker='o', s=80,
-                                   label='시민 그룹' if first_c else "")
-                        first_c = False
-                        ax.text(c["loc"][0], c["loc"][1] - 1.5, c["id"], fontsize=7, ha='center')
-
-                    # 매칭 선: 시각화 대상 대피소에 배정된 시민만 표시
-                    for c_idx, s_idx, count in match_results:
-                        if shelters[s_idx]["id"] in vis_shelter_ids:
-                            c_loc = citizens[c_idx]["loc"]
-                            s_loc = shelters[s_idx]["loc"]
-                            ax.plot([c_loc[0], s_loc[0]], [c_loc[1], s_loc[1]], 'k--', alpha=0.5)
-
-                    ax.set_title("헝가리안 알고리즘 기반 이분 매칭 결과", pad=20)
-                    ax.margins(x=0.1, y=0.15)
-                    ax.legend()
-                    ax.grid(True, linestyle=':', alpha=0.6)
-                    plt.tight_layout()
-                    st.pyplot(fig, use_container_width=True)
-
-                with col2:
-                    st.subheader("배정 요약")
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("시민 그룹", f"{len(citizens)}개")
-                    m2.metric("대피소", f"{len(shelters)}곳")
-                    match_rate = (len(match_results) / len(citizens) * 100 if citizens else 0.0)
-                    st.metric("알고리즘 매칭률", f"{match_rate:.1f}%")
-                    st.write("---")
-                    st.subheader("상세 배정 분석표")
+                with st.expander("📋 상세 배정 분석표"):
                     st.dataframe(df_results, use_container_width=True)
 
             except ValueError as ve:
