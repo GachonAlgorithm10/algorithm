@@ -8,6 +8,14 @@ module_m5_network / ui_network.py
 app.py 통합: render_network_tab() 또는 run() 호출
 """
 
+from core.data_loader import DataLoader
+
+import plotly.graph_objects as go
+import folium
+from streamlit_folium import st_folium
+from core.data_loader import get_loader
+from core.viz_util import style_fig, show
+
 try:
     from .mst_kruskal import build_mst, edge_rows
     from .tarjan import find_articulation_points, spof_rows
@@ -26,19 +34,7 @@ def generate_sample_network():
     실제 통합 단계에서는 M2의 graph_data 또는 위험 구역 결과에서
     주요 거점 node_id를 받아와서 nodes, edges를 교체하면 된다.
     """
-
-    # [자료구조: 그래프(Graph)]
-    # 거점 노드는 M2 격자 결과와 매핑하기 쉽도록 정수 node_id로 구성한다.
-    nodes = [
-        1830,  # 예시 거점 1
-        1831,  # 예시 거점 2
-        1890,  # 예시 거점 3
-        1891,  # 예시 거점 4
-        1950,  # 예시 거점 5
-        1951,  # 예시 거점 6
-    ]
-
-    # 간선 형식: (출발 node_id, 도착 node_id, 복구 비용)
+    nodes = [1830, 1831, 1890, 1891, 1950, 1951]
     edges = [
         (1830, 1831, 4),
         (1830, 1890, 2),
@@ -50,66 +46,238 @@ def generate_sample_network():
         (1891, 1951, 6),
         (1950, 1951, 3),
     ]
+    return nodes, edges
+
+
+def _load_real_network(risk_map: dict) -> tuple:
+    """
+    graph_data.json에서 통신망 노드/엣지를 로드한다.
+    통신 거점: shelter + hospital 노드 (graph_data.json 전체 224개)
+    엣지 형식: mst_kruskal.py가 기대하는 (from_id, to_id, weight) 튜플
+    weight = edge["distance"] * (1 + risk_map.get(from_id, 0))  위험도 반영
+    """
+    loader = DataLoader()
+    nodes = [n["id"] for n in loader.nodes]
+
+    edges = []
+    for e in loader.edges:
+        from_id = e["from"]
+        to_id = e["to"]
+        dist = e.get("distance", 0.05)
+        risk_penalty = 1 + risk_map.get(from_id, 0.0)
+        weight = round(dist * risk_penalty, 4)
+        edges.append((from_id, to_id, weight))
 
     return nodes, edges
+
+
+def _edge_rows_str(edges):
+    """실데이터(문자열 노드)용 엣지 표 행 생성.
+    edge_rows()는 내부에서 node_id % 60 정수 연산을 하므로 문자열 노드에 사용 불가.
+    """
+    return [
+        {"출발 node_id": u, "도착 node_id": v, "가중치(거리×위험)": cost}
+        for u, v, cost in edges
+    ]
+
+
+def _spof_rows_str(spof_nodes):
+    """실데이터(문자열 노드)용 SPOF 표 행 생성."""
+    return [
+        {"단일 장애점 node_id": node, "위험 설명": "해당 거점 장애 시 통신망 분리 가능"}
+        for node in spof_nodes
+    ]
+
+
+def _build_network_graph(node_ids, mst_edges, spof_set, pos, type_lookup):
+    """MST 통신망 네트워크 그래프. 노드=거점(grid 좌표), 엣지=MST, SPOF=빨강."""
+    # MST 간선 라인 (None 구분자로 한 trace에 모두)
+    ex, ey = [], []
+    for u, v, _ in mst_edges:
+        if u in pos and v in pos:
+            ex += [pos[u][0], pos[v][0], None]
+            ey += [pos[u][1], pos[v][1], None]
+    edge_trace = go.Scatter(
+        x=ex, y=ey, mode="lines",
+        line=dict(width=0.8, color="rgba(130,150,180,0.45)"),
+        hoverinfo="skip", showlegend=False,
+    )
+
+    def _markers(ids, color, size, name):
+        ids = [i for i in ids if i in pos]
+        return go.Scatter(
+            x=[pos[i][0] for i in ids], y=[pos[i][1] for i in ids],
+            mode="markers", name=f"{name} ({len(ids)})",
+            marker=dict(size=size, color=color,
+                        line=dict(width=0.5, color="rgba(255,255,255,0.35)")),
+            text=[f"{i}<br>{type_lookup.get(i, '')}"
+                  f"{'  ⚠️ 단일 장애점' if i in spof_set else ''}" for i in ids],
+            hovertemplate="%{text}<extra></extra>",
+        )
+
+    normal = [i for i in node_ids if i not in spof_set]
+    spofs = [i for i in node_ids if i in spof_set]
+    fig = go.Figure(data=[
+        edge_trace,
+        _markers(normal, "#4C8BF5", 6, "정상 거점"),
+        _markers(spofs, "#E03131", 10, "단일 장애점"),
+    ])
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", y=1.04, x=1, xanchor="right"),
+    )
+    # 격자 1:1 비율, 축 눈금 숨김 (지도형 레이아웃)
+    fig.update_yaxes(scaleanchor="x", showgrid=True, gridcolor="rgba(128,128,128,0.15)",
+                        zeroline=False, showticklabels=False)
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.15)",
+                        zeroline=False, showticklabels=False)
+    return style_fig(fig, height=620)
+
+
+def _build_network_map(node_ids, mst_edges, spof_set, node_lookup):
+    """MST 통신망을 송파구 실제 지도에 표시. 회색선=MST, 빨강=SPOF, 파랑=정상."""
+    m = folium.Map(location=[37.505, 127.115], zoom_start=13, tiles="cartodbpositron")
+    # MST 간선
+    for u, v, _ in mst_edges:
+        cu, cv = node_lookup.get(u), node_lookup.get(v)
+        if cu and cv:
+            folium.PolyLine([[cu["lat"], cu["lng"]], [cv["lat"], cv["lng"]]],
+                            color="#868E96", weight=1.5, opacity=0.5).add_to(m)
+    # 거점 노드
+    for nid in node_ids:
+        n = node_lookup.get(nid)
+        if not n:
+            continue
+        is_spof = nid in spof_set
+        name = n.get("name", nid)
+        type_ko = "병원" if n.get("type") == "hospital" else "대피소"
+        folium.CircleMarker(
+            [n["lat"], n["lng"]], radius=6 if is_spof else 4,
+            color="#E03131" if is_spof else "#1971C2", fill=True, fill_opacity=0.85,
+            popup=folium.Popup(
+                f"{name}<br>{type_ko}<br>{'⚠️ 단일 장애점' if is_spof else '정상 거점'}",
+                max_width=250),
+        ).add_to(m)
+    return m
 
 
 def render_network_tab():
     """app.py 의 M5 탭에서 이 함수를 호출한다."""
     import streamlit as st
+    from core.map_util import render_module_guide
 
-    st.header("📡 비상 통신망 설계")
-    st.divider()
-
-    nodes, edges = generate_sample_network()
-
-    # --- 사이드바 입력 데이터 ---
+    # --- 사이드바 ---
     st.sidebar.header("⚙️ 시뮬레이션 설정")
-    st.sidebar.markdown("#### 거점 노드")
-    st.sidebar.write(nodes)
-    st.sidebar.caption("M2 연동 기준: node_id = y * 60 + x")
-    st.sidebar.markdown("#### 복구 후보 간선")
-    st.sidebar.dataframe(edge_rows(edges), use_container_width=True)
+
+    use_real = True
+
+    if use_real:
+        lite_mode = st.sidebar.checkbox(
+            "⚡ 경량 모드 (엣지 3,000개 제한)",
+            value=False,
+            key="m5_lite_mode",
+        )
+        st.sidebar.info("실데이터: 224노드 / 최대 15,071엣지")
+    else:
+        lite_mode = False
+        dummy_nodes, dummy_edges = generate_sample_network()
+        st.sidebar.markdown("#### 거점 노드")
+        st.sidebar.write(dummy_nodes)
+        st.sidebar.markdown("#### 복구 후보 간선")
+        st.sidebar.dataframe(edge_rows(dummy_edges), use_container_width=True)
+
     run_btn = st.sidebar.button("▶ 통신망 설계 실행", key="network_run_btn", type="primary", use_container_width=True)
 
     if run_btn:
-        # [알고리즘: 크루스칼 알고리즘]
-        mst_edges, total_cost, is_connected = build_mst(nodes, edges)
+        risk_map = st.session_state.get("risk_map", {})
+
+        # M2 연동 배지
+        if isinstance(risk_map, dict) and risk_map:
+            st.success("✅ M2 위험도 데이터 연동됨 — 위험 경로 가중치 반영")
+        else:
+            st.info("ℹ️ M2 미실행 시 기본 거리 기반 MST 계산")
+
+        # 데이터 로드
+        if use_real:
+            try:
+                nodes, edges = _load_real_network(risk_map)
+            except Exception as e:
+                st.warning(f"⚠️ 실데이터 로드 실패 — 더미 데이터로 대체합니다. ({e})")
+                nodes, edges = generate_sample_network()
+                use_real = False
+        else:
+            nodes, edges = generate_sample_network()
+
+        # 경량 모드: weight 기준 상위 3,000개 엣지로 제한
+        if lite_mode and use_real:
+            edges = sorted(edges, key=lambda e: e[2])[:3000]
+
+        n_label = f"{len(nodes)}노드, {len(edges)}엣지"
+        with st.spinner(f"크루스칼 MST 연산 중 ({n_label})..."):
+            mst_edges, total_cost, is_connected = build_mst(nodes, edges)
+
+        # session_state 저장 (spof_nodes는 아래에서 채움)
+        st.session_state["network_plan"] = {
+            "mst_edges": mst_edges,
+            "spof_nodes": [],
+        }
 
         st.divider()
         st.subheader("📊 결과")
 
-        st.markdown("#### 최소 비용 복구 통신망 MST")
-        st.dataframe(edge_rows(mst_edges), use_container_width=True)
-
-        st.markdown("#### 총 복구 비용")
-        st.metric(label="Total Recovery Cost", value=total_cost)
-
-        st.markdown("#### 연결 상태")
-        if is_connected:
-            st.success("✅ 모든 거점이 최소 비용 복구 통신망으로 연결되었습니다.")
-
-            # [알고리즘: Tarjan 단절점 탐지]
-            # MST 기준으로 SPOF를 탐지한다.
-            spof_nodes = find_articulation_points(nodes, mst_edges)
-
-            st.markdown("#### 단일 장애점(SPOF) 탐지 결과")
-            if spof_nodes:
-                st.warning("⚠️ 단일 장애점이 탐지되었습니다.")
-                st.dataframe(spof_rows(spof_nodes), use_container_width=True)
-            else:
-                st.success("✅ 단일 장애점이 없습니다.")
-        else:
+        if not is_connected:
             st.error("🚨 일부 거점이 연결되지 않았습니다. 후보 간선 데이터를 확인해야 합니다.")
             st.info("💡 비연결 그래프에서는 SPOF 탐지를 수행할 수 없습니다.")
+        else:
+            with st.spinner("Tarjan 단절점 탐지 중..."):
+                spof_nodes = find_articulation_points(nodes, mst_edges)
+            st.session_state["network_plan"]["spof_nodes"] = spof_nodes
+            spof_set = set(spof_nodes)
+
+            # 노드 정보 매핑 (좌표·이름·유형)
+            _l = get_loader()
+            node_lookup = {n["id"]: n for n in _l.nodes}
+            type_lookup = {nid: node_lookup.get(nid, {}).get("type", "") for nid in nodes}
+
+            # KPI 카드
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("통신 거점", f"{len(nodes)} 곳")
+            c2.metric("MST 간선", f"{len(mst_edges)} 개")
+            c3.metric("총 복구 비용", round(total_cost, 2))
+            c4.metric("단일 장애점(SPOF)", f"{len(spof_nodes)} 개")
+
+            # 송파구 지도 위 통신망 (주요 시각물)
+            st.markdown("#### 최소 비용 복구 통신망 (송파구 지도)")
+            st.caption("회색 선=복구 통신망(MST), 파란 점=정상 거점, 빨간 점=단일 장애점(장애 시 통신망 분리 위험). 점을 클릭하면 거점명이 표시됩니다.")
+            _net_map = _build_network_map(nodes, mst_edges, spof_set, node_lookup)
+            st_folium(_net_map, use_container_width=True, height=560, returned_objects=[])
+
+            # 연결 상태 요약
+            st.success("✅ 모든 거점이 최소 비용 복구 통신망으로 연결되었습니다.")
+            if spof_nodes:
+                st.warning(f"⚠️ 단일 장애점 {len(spof_nodes)}개 — MST(트리) 구조 특성상 잎 노드를 제외한 모든 거점이 장애 시 통신망 분리를 유발할 수 있습니다.")
+
+            # 상세 표 (기본 접힘)
+            with st.expander("📋 상세 데이터 (MST 간선 / SPOF 목록)"):
+                st.markdown("**최소 비용 복구 통신망 (MST 간선)**")
+                if use_real:
+                    st.dataframe(_edge_rows_str(mst_edges), use_container_width=True, height=300)
+                else:
+                    st.dataframe(edge_rows(mst_edges), use_container_width=True)
+                st.markdown("**단일 장애점(SPOF) 목록**")
+                st.dataframe(
+                    [{"건물명": node_lookup.get(n, {}).get("name", n),
+                      "유형": "병원" if type_lookup.get(n) == "hospital" else "대피소",
+                      "node_id": n} for n in spof_nodes],
+                    use_container_width=True, height=300,
+                )
     else:
-        st.info("💡 왼쪽 사이드바에서 설정을 조정한 뒤 '실행' 버튼을 눌러주세요.")
+        st.write("")
+        render_module_guide("M5")
 
 
 def run():
-    """
-    M2 ui_spread.py처럼 app.py에서 run() 방식으로 호출할 경우를 대비한 함수.
-    """
+    """app.py에서 run() 방식으로 호출할 경우를 대비한 함수."""
     render_network_tab()
 
 

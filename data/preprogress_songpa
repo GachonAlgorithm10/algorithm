@@ -1,0 +1,349 @@
+# -*- coding: utf-8 -*-
+"""
+데이터 전처리 모듈
+담당: 나하림
+역할: 공공데이터포털 CSV → graph_data.json 변환
+
+출력 graph_data.json은 M1·M2·M3·M5 공통 토대.
+  - nodes   : 도시 거점 (대피소·병원·통신 허브 등)
+  - edges   : 도로망 (거리·가중치 포함)
+  - grid_mapping: M2 격자 좌표 ↔ 노드 id 매핑
+                  (M2 담당자와 형식 합의 후 구현)
+"""
+
+import json
+import math
+import os
+import pandas as pd
+from pyproj import Transformer
+
+try:
+    import geopandas as gpd
+except ImportError:
+    gpd = None
+
+# ==========================================
+# [전역 설정 및 공간 정의] 서울시 송파구 기준
+# ==========================================
+REGION = "송파구"
+SONGPA_MIN_LAT, SONGPA_MAX_LAT = 37.4600, 37.5420
+SONGPA_MIN_LNG, SONGPA_MAX_LNG = 127.0650, 127.1600
+GRID_SIZE = 60
+
+GRID_OFFSET_X = 899780
+GRID_OFFSET_Y = 1899427
+
+# 좌표 변환기 초기화
+try:
+    pop_transformer = Transformer.from_crs("epsg:5179", "epsg:4326", always_xy=True)
+except Exception as e:
+    print(f"⚠️ EPSG:5179 변환기 초기화 실패: {e}")
+    pop_transformer = None
+
+try:
+    transformer = Transformer.from_crs("epsg:5174", "epsg:4326", always_xy=True)
+except Exception:
+    transformer = Transformer.from_crs("epsg:5186", "epsg:4326", always_xy=True)
+
+
+# ==========================================
+# [유틸리티 함수]
+# ==========================================
+def to_grid_cell_real(lat: float, lng: float) -> tuple:
+    """위경도 좌표를 격자 인덱스로 변환합니다."""
+    grid_x = int(((lng - SONGPA_MIN_LNG) / (SONGPA_MAX_LNG - SONGPA_MIN_LNG)) * (GRID_SIZE - 1))
+    grid_y = int(((lat - SONGPA_MIN_LAT) / (SONGPA_MAX_LAT - SONGPA_MIN_LAT)) * (GRID_SIZE - 1))
+    grid_x = max(0, min(GRID_SIZE - 1, grid_x))
+    grid_y = max(0, min(GRID_SIZE - 1, grid_y))
+    return grid_x, grid_y
+
+
+def get_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """두 위경도 좌표 간의 하버사인 거리를 계산합니다. (단위: km)"""
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    return round(R * math.atan2(math.sqrt(a), math.sqrt(1-a)) * 2, 2)
+
+
+def build_population_density_map(pop_csv_path: str) -> dict:
+    """서울시 250m 격자 생활인구 CSV 기반 밀도 맵 구축."""
+    density_map = {}
+    if not os.path.exists(pop_csv_path):
+        print(f"⚠️ 생활인구 파일이 없어 빈 맵을 반환합니다. ({pop_csv_path})")
+        return density_map
+
+    try:
+        pop_df = load_raw_data(pop_csv_path)
+
+        if '행정동코드' in pop_df.columns:
+            pop_df = pop_df[pop_df['행정동코드'].astype(str).str.startswith('11710')]
+        elif '자치구명' in pop_df.columns:
+            pop_df = pop_df[pop_df['자치구명'].str.contains(REGION, na=False)]
+
+        if pop_df.empty:
+            print(f"⚠️ {REGION} 데이터 없음. 전체 데이터 사용.")
+            pop_df = load_raw_data(pop_csv_path)
+
+        print(f"📊 {REGION} 생활인구 행 수: {len(pop_df)}")
+
+        pop_df['생활인구합계'] = pd.to_numeric(
+            pop_df['생활인구합계'].replace('*', '0'), errors='coerce'
+        ).fillna(0)
+
+        def parse_grid_code(code):
+            digits = ''.join(c for c in str(code).strip() if c.isdigit())
+            if len(digits) != 8:
+                return None, None
+            tm_x = int(digits[:4]) * 10 + GRID_OFFSET_X
+            tm_y = int(digits[4:8]) * 10 + GRID_OFFSET_Y
+            try:
+                lng, lat = pop_transformer.transform(tm_x, tm_y)
+                if not (37.0 <= lat <= 38.0 and 126.5 <= lng <= 127.5):
+                    return None, None
+                return to_grid_cell_real(lat, lng)
+            except:
+                return None, None
+
+        success, fail = 0, 0
+        for _, row in pop_df.iterrows():
+            gx, gy = parse_grid_code(row['250M격자'])
+            if gx is None:
+                fail += 1
+                continue
+            key = (gx, gy)
+            if key not in density_map:
+                density_map[key] = {'sum': 0, 'count': 0}
+            density_map[key]['sum'] += float(row['생활인구합계'])
+            density_map[key]['count'] += 1
+            success += 1
+
+        density_map = {
+            k: int(v['sum'] / v['count'])
+            for k, v in density_map.items()
+        }
+        print(f"✅ 격자 파싱 완료 — 성공: {success}행, 실패: {fail}행")
+        print(f"✅ 인구밀도 격자 맵 구축 완료: {len(density_map)}개 격자 셀")
+
+    except Exception as e:
+        print(f"⚠️ 생활인구 전처리 중 오류 발생: {e}")
+    
+    return density_map
+
+
+def get_node_population_density(grid_x: int, grid_y: int, density_map: dict, search_radius: int = 2) -> int:
+    """격자 좌표 기반 인구 밀도를 조회하거나 주변 격자를 탐색하여 추정합니다."""
+    if not density_map:
+        # CSV 데이터 없을 때 위치 기반 추정 (fallback)
+        if 18 <= grid_x <= 28 and 34 <= grid_y <= 44: return 175
+        if 26 <= grid_x <= 42 and 18 <= grid_y <= 32: return 110
+        if 6 <= grid_x <= 20 and 26 <= grid_y <= 44: return 120
+        if 26 <= grid_x <= 38 and 42 <= grid_y <= 56: return 85
+        return 90
+
+    if (grid_x, grid_y) in density_map:
+        return int(density_map[(grid_x, grid_y)])
+
+    for r in range(1, search_radius + 1):
+        neighbors = []
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                key = (grid_x + dx, grid_y + dy)
+                if key in density_map:
+                    neighbors.append(density_map[key])
+        if neighbors:
+            return int(sum(neighbors) / len(neighbors))
+
+    return int(sum(density_map.values()) / len(density_map))
+
+
+# ==========================================
+# [인프라 전처리 인터페이스 함수]
+# ==========================================
+def load_raw_data(filepath: str) -> pd.DataFrame:
+    """
+    공공데이터포털 및 기관 제공 CSV 로드 (다중 인코딩 대응 적용).
+    """
+    encodings = ['cp949', 'utf-8-sig', 'euc-kr', 'utf-8']
+    for enc in encodings:
+        try:
+            df = pd.read_csv(filepath, encoding=enc)
+            print(f"📖 '{filepath}' 파일을 [{enc}] 인코딩으로 성공적으로 읽었습니다.")
+            return df
+        except UnicodeDecodeError:
+            continue
+    raise Exception(f"❌ '{filepath}' 인코딩 로드 실패")
+
+
+def build_graph(shelter_path: str, hospital_path: str, population_path: str, nodelink_path: str = 'nodelink/MOCT_LINK.shp') -> dict:
+    """
+    각 인프라 데이터 및 격자 데이터를 융합하여 정합성 있는 시뮬레이션 graph_data 구조를 생성합니다.
+    """
+    print(f"🎯 {REGION} 100% 매핑 데이터 최적화 정합 처리를 시작합니다.")
+    
+    graph = {
+        "simulation_settings": {
+            "grid_width": GRID_SIZE,
+            "grid_height": GRID_SIZE
+        },
+        "nodes": [],
+        "edges": [],
+        "grid_mapping": {}
+    }
+
+    raw_infra = []
+    density_map = build_population_density_map(population_path)
+
+    # 1. 대피소 데이터 통합
+    try:
+        shelter_df = load_raw_data(shelter_path)
+        print(f"🏃‍♂️ {REGION} 대피소 데이터 파싱: 총 {len(shelter_df)}개 분석 중...")
+        for _, row in shelter_df.iterrows():
+            if pd.isna(row['위도']) or pd.isna(row['경도']): continue
+            lat, lng = float(str(row['위도']).strip()), float(str(row['경도']).strip())
+            c, r = to_grid_cell_real(lat, lng)
+            capacity_val = int(row['대피가능인원수']) if not pd.isna(row['대피가능인원수']) else 200
+            raw_infra.append({
+                "name": str(row['민방위대피시설명']), "type": "shelter",
+                "lat": round(lat, 4), "lng": round(lng, 4),
+                "capacity": capacity_val, "grid_x": c, "grid_y": r
+            })
+        print(f"✅ 대피소 {len(raw_infra)}개 노드 바인딩 적재 성공!")
+    except Exception as e:
+        print(f"❌ 대피소 데이터 처리 실패: {e}")
+
+    # 2. 병원 데이터 통합 [★ 수정 포인트 1: 공백 및 문자열 오류 완벽 방어]
+    pre_hospital_count = len(raw_infra)
+    try:
+         hospital_df = load_raw_data(hospital_path)
+         print(f"🏥 {REGION} 병원 데이터 파싱: 총 {len(hospital_df)}개 분석 중...")
+         success_hospital = 0
+         for _, row in hospital_df.iterrows():
+             if pd.isna(row['좌표정보(X)']) or pd.isna(row['좌표정보(Y)']): continue
+             
+             x_str = str(row['좌표정보(X)']).strip()
+             y_str = str(row['좌표정보(Y)']).strip()
+             if x_str == '' or y_str == '': continue
+             
+             # 수치 문자열 변환 검증 프로세스 추가
+             try:
+                 tm_x, tm_y = float(x_str), float(y_str)
+             except ValueError:
+                 continue # 변환 에러 유발 행은 통과 시킴
+                 
+             lng, lat = transformer.transform(tm_x, tm_y)
+             c, r = to_grid_cell_real(lat, lng)
+             raw_infra.append({
+                 "name": str(row['사업장명']), "type": "hospital",
+                 "lat": round(lat, 4), "lng": round(lng, 4),
+                 "capacity": int(row['병상수']) if not pd.isna(row['병상수']) else 45,
+                 "grid_x": c, "grid_y": r
+             })
+             success_hospital += 1
+         print(f"✅ 병원 {success_hospital}개 노드 바인딩 적재 성공!")
+    except Exception as e:
+         print(f"⚠️ 병원 데이터 처리 실패: {e}")
+
+    # 3. 노드 정보 구축 및 M2 격자 매핑 정의
+    for i, info in enumerate(raw_infra):
+        node_str_id = f"node_{i+1:03d}"
+        pop_density = get_node_population_density(info["grid_x"], info["grid_y"], density_map)
+        
+        graph["nodes"].append({
+            "id": node_str_id, "name": info["name"], "type": info["type"],
+            "lat": info["lat"], "lng": info["lng"], "capacity": info["capacity"],
+            "grid_x": info["grid_x"], "grid_y": info["grid_y"],
+            "population_density": pop_density
+        })
+        graph["grid_mapping"][node_str_id] = {
+            "row": info["grid_y"], "col": info["grid_x"]
+        }
+
+    # 4. 엣지(도로망 간선) 생성 [★ 수정 포인트 2: 좌표계 선 변환 후 공간 필터링 처리]
+    nodes = graph["nodes"]
+    
+    if gpd is not None and os.path.exists(nodelink_path):
+        try:
+            print("🛣️ [노드링크 연동] 전국 도로 데이터 로드 및 좌표계 정합 변환 중...")
+            roads_all = gpd.read_file(nodelink_path)
+            
+            # 1) 전체 도로 데이터 좌표계를 위경도(EPSG:4326)로 전격 통합 변환
+            if roads_all.crs is None or roads_all.crs.to_string() != "EPSG:4326":
+                roads_all = roads_all.to_crs("EPSG:4326")
+            
+            print(f"✂️ 변환된 데이터셋 기반 {REGION} 공간 바운딩 필터링 수행 중...")
+            # 2) 위경도 단위 상태에서 송파구 바운딩 박스 슬라이싱 진행
+            roads = roads_all.cx[SONGPA_MIN_LNG:SONGPA_MAX_LNG, SONGPA_MIN_LAT:SONGPA_MAX_LAT]
+            print(f"✂️ 필터링 완료: {REGION} 내 실제 도로 링크 {len(roads)}개 확보.")
+            
+            for i in range(len(nodes)):
+                for j in range(i + 1, len(nodes)):
+                    dist = get_haversine_distance(nodes[i]["lat"], nodes[i]["lng"], nodes[j]["lat"], nodes[j]["lng"])
+                    if dist <= 3.0:
+                        line_segment = roads.cx[
+                            min(nodes[i]["lng"], nodes[j]["lng"]):max(nodes[i]["lng"], nodes[j]["lng"]),
+                            min(nodes[i]["lat"], nodes[j]["lat"]):max(nodes[i]["lat"], nodes[j]["lat"])
+                        ]
+                        weight_modifier = 0.8 if not line_segment.empty else 1.2
+                        graph["edges"].append({
+                            "from": nodes[i]["id"], "to": nodes[j]["id"],
+                            "distance": dist, "weight": round(dist * weight_modifier, 2)
+                        })
+            print(f"✅ 실제 도로 기반 간선 {len(graph['edges'])}개 결합 완료!")
+        except Exception as e:
+            print(f"⚠️ 노드링크 연산 실패 (직선거리 대체 로직 가동): {e}")
+            for i in range(len(nodes)):
+                for j in range(i + 1, len(nodes)):
+                    dist = get_haversine_distance(nodes[i]["lat"], nodes[i]["lng"], nodes[j]["lat"], nodes[j]["lng"])
+                    if dist <= 3.0:
+                        graph["edges"].append({
+                            "from": nodes[i]["id"], "to": nodes[j]["id"],
+                            "distance": dist, "weight": dist
+                        })
+    else:
+        print("💡 MOCT_LINK.shp 없음 또는 geopandas 미설치 — 직선거리 기반 Edges 구축.")
+        for i in range(len(nodes)):
+            for j in range(i + 1, len(nodes)):
+                dist = get_haversine_distance(nodes[i]["lat"], nodes[i]["lng"], nodes[j]["lat"], nodes[j]["lng"])
+                if dist <= 3.0:
+                    graph["edges"].append({
+                        "from": nodes[i]["id"], "to": nodes[j]["id"],
+                        "distance": dist, "weight": dist
+                    })
+
+    return graph
+
+
+def save_graph_data(graph: dict, output_path: str = "data/graph_data.json") -> None:
+    """graph_data.json으로 전처리 결과를 정형 저장합니다."""
+    dir_name = os.path.dirname(output_path)
+    if dir_name and not os.path.exists(dir_name):
+        os.makedirs(dir_name, exist_ok=True)
+        
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(graph, f, ensure_ascii=False, indent=2)
+    print(f"[preprocess] graph_data 저장 완료 → {output_path}")
+
+
+if __name__ == "__main__":
+    # 1. 원본 소스 데이터 경로 설정 
+    SHELTER_CSV = 'shelter_songpa.csv'
+    HOSPITAL_CSV = 'hospital_songpa.csv'
+    POPULATION_CSV = 'population_songpa.csv'
+    NODELINK_SHP = 'nodelink/MOCT_LINK.shp'
+    
+    OUTPUT_JSON = f"data/{REGION}_simulation_data.json"
+
+    # 2. 통합 전처리 프로세스 가동 
+    graph_data = build_graph(
+        shelter_path=SHELTER_CSV,
+        hospital_path=HOSPITAL_CSV,
+        population_path=POPULATION_CSV,
+        nodelink_path=NODELINK_SHP
+    )
+    
+    # 3. 통합 결과 데이터 보존
+    save_graph_data(graph_data, output_path=OUTPUT_JSON)
+    
+    print(f"\n✨ [최종 작업 완료] 노드 {len(graph_data['nodes'])}개 | 간선 {len(graph_data['edges'])}개")
