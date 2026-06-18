@@ -3,6 +3,8 @@
 M4 UI — 구조자원 배치 탭
 """
 import streamlit as st
+import plotly.graph_objects as go
+from core.viz_util import style_fig, show
 
 from core.map_util import render_module_guide
 
@@ -26,6 +28,17 @@ except ImportError:
     )
 
 
+SKILL_KO = {
+    "ambulance": "구급차",
+    "excavator": "굴착기",
+    "psychological_support": "심리지원",
+    "logistics": "물류",
+    "generator": "발전기",
+    "search_rescue": "수색구조",
+    "fire_truck": "소방차",
+}
+
+
 def _real_to_resource(raw: dict) -> Resource:
     """실데이터 dict → Resource 객체 변환 어댑터.
     실데이터 키: id, type, location_node, skill
@@ -43,15 +56,7 @@ def run() -> None:
     # 사이드바 설정
     st.sidebar.header("⚙️ 시뮬레이션 설정")
 
-    data_source = st.sidebar.radio(
-        "데이터 소스 (자원)",
-        ["실데이터 (32건)", "더미 데이터"],
-        key="m4_data_source",
-    )
-    use_real = data_source == "실데이터 (32건)"
-
-    if not use_real:
-        n_resources = st.sidebar.slider("자원 수", min_value=4, max_value=30, value=10, key="m4_n_resources")
+    use_real = True
 
     n_sites_val = st.sidebar.slider("현장 수", min_value=2, max_value=8, value=4, key="m4_n_sites")
     run_btn = st.sidebar.button("▶ 배치 최적화 실행", key="resource_run_btn", type="primary", use_container_width=True)
@@ -97,8 +102,31 @@ def run() -> None:
             col2.metric("미배정", f"{n_unassigned} 건")
             col3.metric("총 배치 비용", f"{total_cost:.4f}")
 
-            st.subheader("📋 상세 배치 결과")
-            st.dataframe(results_to_rows(assigned), use_container_width=True)
+            st.markdown("#### 자원 배치 현황")
+            cc1, cc2 = st.columns([1, 1])
+            with cc1:
+                donut = go.Figure([go.Pie(
+                    labels=["배정 완료", "대기 자원"], values=[n_assigned, n_unassigned],
+                    hole=0.55, marker_colors=["#2F9E44", "#495057"], sort=False,
+                )])
+                donut.update_layout(title_text="배정 / 대기")
+                show(style_fig(donut, height=340))
+            with cc2:
+                skill_cnt = {}
+                for r in assigned:
+                    if r.assigned_site:
+                        skill_cnt[r.skill] = skill_cnt.get(r.skill, 0) + 1
+                bar = go.Figure([go.Bar(
+                    x=list(skill_cnt.values()),
+                    y=[SKILL_KO.get(k, k) for k in skill_cnt.keys()], orientation="h",
+                    marker_color="#4C8BF5", text=list(skill_cnt.values()), textposition="outside",
+                )])
+                bar.update_layout(title_text="배정 자원 스킬 구성", xaxis_title="배정 수")
+                show(style_fig(bar, height=340))
+
+            st.caption(f"💡 가용 현장 {n_sites_val}곳에 최적 자원을 배치했습니다. 나머지 {n_unassigned}건은 대기 자원입니다.")
+            with st.expander("📋 상세 배치 결과 (전체 자원)"):
+                st.dataframe(results_to_rows(assigned), use_container_width=True, height=360)
 
         st.session_state["resource_assign"] = [
             {"vol_id": r.rid, "site_id": r.assigned_site, "cost": r.cost}

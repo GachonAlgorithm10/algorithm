@@ -3,6 +3,8 @@
 M7 UI — 복구 예산 최적 배분 탭
 """
 import streamlit as st
+import plotly.graph_objects as go
+from core.viz_util import style_fig, show
 
 from core.map_util import render_module_guide
 
@@ -38,12 +40,7 @@ def run() -> None:
         key="m7_budget_million",
     )
 
-    data_source = st.sidebar.radio(
-        "데이터 소스",
-        ["실데이터 (14건)", "더미 데이터 (15건)"],
-        key="m7_data_source",
-    )
-    use_real = data_source == "실데이터 (14건)"
+    use_real = True
 
     run_btn = st.sidebar.button("▶ 예산 배분 최적화 실행", key="budget_run_btn", type="primary", use_container_width=True)
 
@@ -86,8 +83,34 @@ def run() -> None:
             m4.metric("총 복구 효과", f"{result['total_effect']:,}")
 
             st.write("---")
-            st.subheader("📋 지역별 상세 배분 결과")
-            st.dataframe(results_to_rows(result), use_container_width=True)
+            st.success(
+                f"💰 복구 예산 {budget_million:,}백만 원으로 {n_selected}개 구역 복구 선정 "
+                f"— 총 복구효과 {result['total_effect']:,} (예산 {result['budget_used']:,} 사용)"
+            )
+
+            # 복구 우선순위 결정 리스트 (선정 구역, 효과 큰 순)
+            selected = [z for z in result["selected_zones"] if z["selected"]]
+            selected.sort(key=lambda z: z["effect"], reverse=True)
+            st.markdown("#### 복구 착수 우선순위")
+            decision_rows = [
+                {"순위": i, "구역": z["zone_id"], "노드": z.get("node_id", "-"),
+                 "복구비용(백만)": z["cost"], "복구효과": z["effect"]}
+                for i, z in enumerate(selected, 1)
+            ]
+            st.dataframe(decision_rows, use_container_width=True, height=320)
+
+            # 보조 시각물: 전체 구역 효과 (선택 강조)
+            st.markdown("#### 구역별 복구 효과 (선택 강조)")
+            sz = sorted(result["selected_zones"], key=lambda z: z["effect"], reverse=True)
+            colors = ["#2F9E44" if z["selected"] else "#495057" for z in sz]
+            fig = go.Figure([go.Bar(x=[z["zone_id"] for z in sz],
+                                    y=[z["effect"] for z in sz], marker_color=colors)])
+            fig.update_layout(xaxis_title="복구 구역", yaxis_title="실효과", xaxis_tickangle=-45)
+            show(style_fig(fig, height=360))
+            st.caption("💡 초록 = 예산 배분 선택(Knapsack DP), 회색 = 예산 제약으로 제외된 구역")
+
+            with st.expander("📋 지역별 상세 배분 결과 (전체)"):
+                st.dataframe(results_to_rows(result), use_container_width=True, height=360)
 
             # 파이프라인 연동 세션 저장 유지
             st.session_state["budget_plan"] = [

@@ -181,7 +181,7 @@ def render_module_guide(module_key):
         <div style="background-color: #fef2f2; width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(239, 68, 68, 0.1);">
             <span class="material-symbols-rounded" style="color: #ef4444; font-size: 28px;">{guide['icon']}</span>
         </div>
-        <h2 style="margin: 0; padding: 0; font-weight: 800; color: #0f172a; font-size: 1.9rem; letter-spacing: -0.5px;">{guide['title']}</h2>
+        <h2 style="margin: 0; padding: 0; font-weight: 800; color: var(--text-color); font-size: 1.9rem; letter-spacing: -0.5px;">{guide['title']}</h2>
     </div>
 
     <div class="guide-container">

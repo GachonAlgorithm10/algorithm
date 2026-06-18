@@ -8,6 +8,8 @@ module_m3_triage / ui_triage.py
 app.py 통합: render_triage_tab() 를 호출
 """
 import random
+import plotly.graph_objects as go
+from core.viz_util import style_fig, show
 
 # 패키지/폴더 양쪽 실행 지원
 try:
@@ -44,15 +46,7 @@ def render_triage_tab():
     # --- 사이드바 입력 컨트롤 ---
     st.sidebar.header("⚙️ 시뮬레이션 설정")
 
-    data_source = st.sidebar.radio(
-        "데이터 소스",
-        ["실데이터 (71건)", "더미 데이터"],
-        key="m3_data_source",
-    )
-    use_real = data_source == "실데이터 (71건)"
-
-    if not use_real:
-        n_patients = st.sidebar.slider("부상자 수", 4, 40, 12)
+    use_real = True
 
     n_general = st.sidebar.slider("일반 구급차", 1, 5, 2)
     n_critical = st.sidebar.slider("중증 전담 구급차", 0, 3, 1)
@@ -82,12 +76,45 @@ def render_triage_tab():
         result = run_triage(patients, ambulances)
         st.session_state["transport_order"] = result
 
-        # --- 결과 테이블 ---
         st.divider()
         st.subheader("📊 결과")
-        st.dataframe(results_to_rows(result), use_container_width=True)
-        st.info("💡 이송시간은 현재 시뮬레이션 값입니다. 통합 단계에서 "
-                "거리 util(graph_data 기반)의 실제 값으로 교체됩니다.")
+
+        ranked = sorted(result, key=lambda p: p.score, reverse=True)
+        if ranked:
+            t = ranked[0]
+            st.error(
+                f"🚑 최우선 이송 대상: 환자 #{t.pid} · 중증도 {t.severity} · 대기 {t.wait_time}분 "
+                f"→ {t.assigned} 구급차 배정"
+            )
+
+        total = len(result)
+        assigned_n = sum(1 for p in result if p.assigned)
+        avg_wait = round(sum(p.wait_time for p in result) / total, 1) if total else 0
+        avg_score = round(sum(p.score for p in result) / total, 3) if total else 0
+        k1, k2, k3, k4 = st.columns(4)
+        k1.metric("총 부상자", f"{total} 명")
+        k2.metric("배정 완료", f"{assigned_n} 명")
+        k3.metric("평균 대기", f"{avg_wait} 분")
+        k4.metric("평균 우선순위", avg_score)
+
+        st.markdown("#### 이송 우선순위 큐 (상위 15)")
+        topN = ranked[:15][::-1]  # 가로 막대 상단이 1순위가 되도록 역순
+        fig = go.Figure([go.Bar(
+            x=[p.score for p in topN],
+            y=[f"#{p.pid}" for p in topN],
+            orientation="h",
+            marker=dict(color=[p.severity for p in topN], colorscale="Reds",
+                        cmin=1, cmax=5, colorbar=dict(title="중증도")),
+            customdata=[[p.severity, p.wait_time, p.assigned or "-"] for p in topN],
+            hovertemplate=("환자 %{y}<br>우선순위 %{x:.3f}<br>중증도 %{customdata[0]}"
+                           "<br>대기 %{customdata[1]}분<br>배정 %{customdata[2]}<extra></extra>"),
+        )])
+        fig.update_layout(xaxis_title="우선순위 점수", yaxis_title="환자")
+        show(style_fig(fig, height=420))
+
+        st.caption("💡 이송시간은 현재 시뮬레이션 값이며, 통합 단계에서 거리 util(graph_data 기반) 실제 값으로 교체됩니다.")
+        with st.expander("📋 상세 이송 우선순위 (전체)"):
+            st.dataframe(results_to_rows(result), use_container_width=True, height=360)
     else:
         st.write("")
         render_module_guide("M3")

@@ -3,6 +3,8 @@
 M6 UI — 구호물자 수요 산정 탭
 """
 import streamlit as st
+import plotly.graph_objects as go
+from core.viz_util import style_fig, show
 
 from core.map_util import render_module_guide
 
@@ -90,8 +92,47 @@ def run() -> None:
             )
 
             st.write("---")
-            st.subheader("📋 대피소별 상세 배분 결과")
-            st.dataframe(results_to_rows(result["supply_demand"]), use_container_width=True)
+            # 부족 대피소 우선 추출 (예외 우선)
+            sd = result["supply_demand"]
+            shortages = []
+            for sid, v in sd.items():
+                sw = round(v["need_water_L"] - v["alloc_water_L"], 1)
+                sf = round(v["need_food_kg"] - v["alloc_food_kg"], 1)
+                sm = round(v["need_med"] - v["alloc_med"], 1)
+                if sw > 0.1 or sf > 0.1 or sm > 0.1:
+                    shortages.append({"대피소": sid, "부족(물,L)": sw,
+                                      "부족(식량,kg)": sf, "부족(의약품)": sm})
+
+            if shortages:
+                st.error(f"🚨 {len(shortages)}개 대피소 물자 부족 — 추가 배송이 필요합니다.")
+                shortages.sort(key=lambda r: r["부족(물,L)"], reverse=True)
+                st.markdown("#### 물자 부족 대피소 (부족량 큰 순)")
+                st.dataframe(shortages, use_container_width=True, height=320)
+            else:
+                st.success("✅ 전 대피소 물자 수요 100% 충족 — 추가 배송 불필요.")
+
+            # 보조 지표: 물자별 충족률
+            need, alloc = result["total_need"], result["total_alloc"]
+            def _rate(a, n):
+                return round(a / n * 100, 1) if n > 0 else 100.0
+            cats = ["물", "식량", "의약품"]
+            rates = [_rate(alloc["water_L"], need["water_L"]),
+                     _rate(alloc["food_kg"], need["food_kg"]),
+                     _rate(alloc["med"], need["med"])]
+            colors = ["#2F9E44" if r >= 99.9 else "#E8590C" for r in rates]
+            st.markdown("#### 물자별 수요 충족률")
+            fig = go.Figure([go.Bar(x=cats, y=rates, marker_color=colors,
+                                    text=[f"{r}%" for r in rates], textposition="outside")])
+            fig.update_layout(yaxis_title="충족률 (%)", yaxis_range=[0, 110])
+            fig.add_hline(y=100, line_dash="dash", line_color="rgba(128,128,128,0.5)")
+            show(style_fig(fig, height=320))
+
+            with st.expander("📋 대피소별 상세 배분 결과 (전체)"):
+                _rows = results_to_rows(result["supply_demand"])
+                _keep = ["대피소", "배정인원", "위험도", "우선순위",
+                         "배분(물,L)", "배분(식량,kg)", "배분(의약품)"]
+                _trimmed = [{k: row[k] for k in _keep if k in row} for row in _rows]
+                st.dataframe(_trimmed, use_container_width=True, height=360)
 
             # 파이프라인 연동 세션 저장 유지
             st.session_state["supply_demand"] = result["supply_demand"]

@@ -121,7 +121,10 @@ class DataLoader:
         return None
 
     def get_risk(self, node_id: str, default: float = 0.0) -> float:
-        return st.session_state.get("risk_map", {}).get(node_id, default)
+        rm = st.session_state.get("risk_map", {})
+        if not isinstance(rm, dict):
+            return default
+        return rm.get(node_id, default)
 
     # ------------------------------------------------------------------
     # 부가 데이터 프로퍼티 (FileNotFoundError → DATA-02)

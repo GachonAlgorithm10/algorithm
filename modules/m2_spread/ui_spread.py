@@ -9,10 +9,11 @@ Original file is located at
 
 # module_m2_spread/ui_spread.py
 import streamlit as st
-import matplotlib.pyplot as plt
 import numpy as np
+import plotly.graph_objects as go
 
 from core.map_util import render_module_guide
+from core.viz_util import style_fig, show
 
 # 같은 패키지 폴더 내의 모듈들 로드 (상대 경로로 안전하게 변경)
 from .bfs_spread import BFSFireSpread
@@ -23,6 +24,87 @@ from .cellular_automata import CellularAutomataModel
 def init_simulation_engine():
     # 전처리 완료된 데이터 경로 지정 (실제 경로에 맞게 팀원들과 조율 가능)
     return BFSFireSpread("data/graph_data.json")
+
+_HAZARD_COLORSCALE = [
+    [0.00, "rgba(0,0,0,0)"],   # 0 안전 → 투명(페이지 배경)
+    [0.33, "rgba(0,0,0,0)"],
+    [0.34, "#FEE08B"],         # 1 주의
+    [0.66, "#FC8D59"],         # 2 위험
+    [1.00, "#990000"],         # 3 재난
+]
+
+
+def _build_spread_animation(fire_time_map, population_matrix, max_time):
+    """BFS 도달시간 맵 → 시간별 확산 애니메이션 Plotly figure.
+    프레임 t: fire_time_map <= t 인 셀만 표시(확산), 경과시간으로 단계 상승(심화)."""
+    import numpy as np
+
+    steps = [round(s, 1) for s in np.linspace(1, max_time, 20)]
+
+    def hazard_at(t):
+        z = np.zeros_like(fire_time_map, dtype=float)
+        reached = (fire_time_map >= 0) & (fire_time_map <= t)
+        elapsed = t - fire_time_map
+        z[reached] = 1
+        z[reached & (elapsed >= max_time * 0.3)] = 2
+        z[reached & (elapsed >= max_time * 0.6)] = 3
+        return z
+
+    # trace0 = 인구 배경, trace1 = hazard(애니메이션 대상)
+    fig = go.Figure(
+        data=[
+            go.Heatmap(z=population_matrix, colorscale="Greys",
+                       showscale=False, opacity=0.12, hoverinfo="skip"),
+            go.Heatmap(z=hazard_at(steps[0]), zmin=0, zmax=3,
+                       colorscale=_HAZARD_COLORSCALE, showscale=False, hoverinfo="skip"),
+        ],
+        frames=[
+            go.Frame(
+                data=[go.Heatmap(z=hazard_at(t), zmin=0, zmax=3,
+                                 colorscale=_HAZARD_COLORSCALE, showscale=False, hoverinfo="skip")],
+                traces=[1],           # ← hazard 레이어만 갱신 (배경 유지)
+                name=str(t),
+            )
+            for t in steps
+        ],
+    )
+
+    # 범례용 더미 마커 (값 없음, 색상 안내만)
+    for color, label in [("#FEE08B", "주의"), ("#FC8D59", "위험"), ("#990000", "재난")]:
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None], mode="markers",
+            marker=dict(size=12, color=color, symbol="square"), name=label,
+        ))
+
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", y=1.08, x=1, xanchor="right", title=""),
+        updatemenus=[{
+            "type": "buttons", "showactive": False, "x": 0.0, "y": 1.12, "xanchor": "left",
+            "buttons": [
+                {"label": "▶ 재생", "method": "animate",
+                 "args": [None, {"frame": {"duration": 350, "redraw": True},
+                                 "fromcurrent": True, "transition": {"duration": 0}}]},
+                {"label": "⏸ 정지", "method": "animate",
+                 "args": [[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}]},
+            ],
+        }],
+        sliders=[{
+            "active": 0, "x": 0.1, "len": 0.9, "y": 0, "pad": {"t": 5},
+            "currentvalue": {"prefix": "경과 시간: ", "suffix": " 분"},
+            "steps": [
+                {"label": str(t), "method": "animate",
+                 "args": [[str(t)], {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"}]}
+                for t in steps
+            ],
+        }],
+    )
+    # matplotlib origin="lower"와 동일 방향 (행0=하단). 격자 비율 1:1, 축 눈금 숨김.
+    fig.update_yaxes(scaleanchor="x", constrain="domain", showgrid=False, zeroline=False,
+                     showticklabels=False)
+    fig.update_xaxes(constrain="domain", showgrid=False, zeroline=False, showticklabels=False)
+    return style_fig(fig, height=560)
+
 
 def run():
     """ M2 모듈 메인 실행 함수"""
@@ -45,8 +127,6 @@ def run():
         run_btn = st.sidebar.button("▶ 시뮬레이션 실행", key="spread_run_btn", type="primary", use_container_width=True)
 
         if run_btn:
-            st.session_state["risk_map"] = True
-            
             with st.spinner("🔥 재난 확산 시뮬레이션 연산 중..."):
                 # 1단계: 인구 가중치 기반 기본 BFS 수행 (불길 도달 시간 맵 생성)
                 fire_time_map = bfs_engine.run_bfs(
@@ -78,6 +158,16 @@ def run():
                         final_hazard_map, wind_dir=wind_direction
                     )
 
+            from core.data_loader import DataLoader as _DL
+            _loader = _DL()
+            _risk_map: dict = {}
+            for _n in _loader.nodes:
+                _gx = _n.get("grid_x", 0)
+                _gy = _n.get("grid_y", 0)
+                if 0 <= _gy < final_hazard_map.shape[0] and 0 <= _gx < final_hazard_map.shape[1]:
+                    _risk_map[_n["id"]] = round(float(final_hazard_map[_gy, _gx]) / 3.0, 4)
+            st.session_state["risk_map"] = _risk_map
+
             st.divider()
             st.subheader("📊 결과")
             # 결과 시각화 레이아웃 분할 (좌측: 그래프, 우측: 통계)
@@ -85,28 +175,9 @@ def run():
 
             with col1:
                 st.subheader(f"📊 예측 분석 보고서 (발화 노드 ID: {start_node})")
-
-                # 시각화를 위한 마스킹 처리 (0인 안전구역은 투명하게 처리)
-                plot_map = final_hazard_map.astype(float)
-                plot_map[plot_map == 0] = np.nan
-
-                # 매트릭스 렌더링
-                fig, ax = plt.subplots(figsize=(8, 7))
-
-                # 바탕에 은은하게 인구 배경 깔아주기
-                ax.imshow(bfs_engine.population_matrix, cmap="gray", alpha=0.15, origin="lower")
-
-                # 그 위에 최종 위험도 격자 얹기
-                im = ax.imshow(plot_map, cmap="YlOrRd", vmin=1, vmax=3, origin="lower")
-
-                # 컬러바 가독성 업그레이드
-                cbar = plt.colorbar(im, ax=ax, ticks=[1, 2, 3])
-                cbar.ax.set_yticklabels(['1 (주의)', '2 (위험)', '3 (재난)'])
-                cbar.set_label("최종 위험도 단계 (Hazard Level)")
-
-                ax.set_xlabel("격자 X 좌표")
-                ax.set_ylabel("격자 Y 좌표")
-                st.pyplot(fig)
+                st.caption("▶ 재생 버튼으로 시간에 따른 확산을 재생하거나, 슬라이더로 특정 시점을 확인하세요.")
+                anim = _build_spread_animation(fire_time_map, bfs_engine.population_matrix, max_time)
+                show(anim)
 
             with col2:
                 st.subheader("📈 위험 구역 요약")

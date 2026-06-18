@@ -10,6 +10,10 @@ app.py 통합: render_network_tab() 또는 run() 호출
 
 from core.data_loader import DataLoader
 
+import plotly.graph_objects as go
+from core.data_loader import get_loader
+from core.viz_util import style_fig, show
+
 try:
     from .mst_kruskal import build_mst, edge_rows
     from .tarjan import find_articulation_points, spof_rows
@@ -83,6 +87,51 @@ def _spof_rows_str(spof_nodes):
     ]
 
 
+def _build_network_graph(node_ids, mst_edges, spof_set, pos, type_lookup):
+    """MST 통신망 네트워크 그래프. 노드=거점(grid 좌표), 엣지=MST, SPOF=빨강."""
+    # MST 간선 라인 (None 구분자로 한 trace에 모두)
+    ex, ey = [], []
+    for u, v, _ in mst_edges:
+        if u in pos and v in pos:
+            ex += [pos[u][0], pos[v][0], None]
+            ey += [pos[u][1], pos[v][1], None]
+    edge_trace = go.Scatter(
+        x=ex, y=ey, mode="lines",
+        line=dict(width=0.8, color="rgba(130,150,180,0.45)"),
+        hoverinfo="skip", showlegend=False,
+    )
+
+    def _markers(ids, color, size, name):
+        ids = [i for i in ids if i in pos]
+        return go.Scatter(
+            x=[pos[i][0] for i in ids], y=[pos[i][1] for i in ids],
+            mode="markers", name=f"{name} ({len(ids)})",
+            marker=dict(size=size, color=color,
+                        line=dict(width=0.5, color="rgba(255,255,255,0.35)")),
+            text=[f"{i}<br>{type_lookup.get(i, '')}"
+                  f"{'  ⚠️ 단일 장애점' if i in spof_set else ''}" for i in ids],
+            hovertemplate="%{text}<extra></extra>",
+        )
+
+    normal = [i for i in node_ids if i not in spof_set]
+    spofs = [i for i in node_ids if i in spof_set]
+    fig = go.Figure(data=[
+        edge_trace,
+        _markers(normal, "#4C8BF5", 6, "정상 거점"),
+        _markers(spofs, "#E03131", 10, "단일 장애점"),
+    ])
+    fig.update_layout(
+        showlegend=True,
+        legend=dict(orientation="h", y=1.04, x=1, xanchor="right"),
+    )
+    # 격자 1:1 비율, 축 눈금 숨김 (지도형 레이아웃)
+    fig.update_yaxes(scaleanchor="x", showgrid=True, gridcolor="rgba(128,128,128,0.15)",
+                        zeroline=False, showticklabels=False)
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(128,128,128,0.15)",
+                        zeroline=False, showticklabels=False)
+    return style_fig(fig, height=620)
+
+
 def render_network_tab():
     """app.py 의 M5 탭에서 이 함수를 호출한다."""
     import streamlit as st
@@ -91,12 +140,7 @@ def render_network_tab():
     # --- 사이드바 ---
     st.sidebar.header("⚙️ 시뮬레이션 설정")
 
-    data_source = st.sidebar.radio(
-        "데이터 소스",
-        ["실데이터 (224노드)", "더미 데이터 (6노드)"],
-        key="m5_data_source",
-    )
-    use_real = data_source == "실데이터 (224노드)"
+    use_real = True
 
     if use_real:
         lite_mode = st.sidebar.checkbox(
@@ -152,38 +196,53 @@ def render_network_tab():
         st.divider()
         st.subheader("📊 결과")
 
-        st.markdown("#### 최소 비용 복구 통신망 MST")
-        if use_real:
-            st.dataframe(_edge_rows_str(mst_edges[:200]), use_container_width=True)
-            if len(mst_edges) > 200:
-                st.caption(f"상위 200건 표시 / 전체 {len(mst_edges)}건")
-        else:
-            st.dataframe(edge_rows(mst_edges), use_container_width=True)
-
-        st.markdown("#### 총 복구 비용")
-        st.metric(label="Total Recovery Cost", value=round(total_cost, 4))
-
-        st.markdown("#### 연결 상태")
-        if is_connected:
-            st.success("✅ 모든 거점이 최소 비용 복구 통신망으로 연결되었습니다.")
-
-            with st.spinner("Tarjan 단절점 탐지 중..."):
-                spof_nodes = find_articulation_points(nodes, mst_edges)
-
-            st.session_state["network_plan"]["spof_nodes"] = spof_nodes
-
-            st.markdown("#### 단일 장애점(SPOF) 탐지 결과")
-            if spof_nodes:
-                st.warning("⚠️ 단일 장애점이 탐지되었습니다.")
-                if use_real:
-                    st.dataframe(_spof_rows_str(spof_nodes), use_container_width=True)
-                else:
-                    st.dataframe(spof_rows(spof_nodes), use_container_width=True)
-            else:
-                st.success("✅ 단일 장애점이 없습니다.")
-        else:
+        if not is_connected:
             st.error("🚨 일부 거점이 연결되지 않았습니다. 후보 간선 데이터를 확인해야 합니다.")
             st.info("💡 비연결 그래프에서는 SPOF 탐지를 수행할 수 없습니다.")
+        else:
+            with st.spinner("Tarjan 단절점 탐지 중..."):
+                spof_nodes = find_articulation_points(nodes, mst_edges)
+            st.session_state["network_plan"]["spof_nodes"] = spof_nodes
+            spof_set = set(spof_nodes)
+
+            # 좌표 / 유형 매핑
+            if use_real:
+                _l = get_loader()
+                pos = {n["id"]: (n["grid_x"], n["grid_y"]) for n in _l.nodes}
+                type_lookup = {n["id"]: n.get("type", "") for n in _l.nodes}
+            else:
+                pos = {nid: (nid % 60, nid // 60) for nid in nodes}
+                type_lookup = {nid: "거점" for nid in nodes}
+
+            # KPI 카드
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("통신 거점", f"{len(nodes)} 곳")
+            c2.metric("MST 간선", f"{len(mst_edges)} 개")
+            c3.metric("총 복구 비용", round(total_cost, 2))
+            c4.metric("단일 장애점(SPOF)", f"{len(spof_nodes)} 개")
+
+            # 네트워크 그래프 (주요 시각물)
+            st.markdown("#### 최소 비용 복구 통신망")
+            st.caption("파란 노드=정상 거점, 빨간 노드=단일 장애점(장애 시 통신망 분리 위험). 노드에 마우스를 올리면 상세 정보가 표시됩니다.")
+            show(_build_network_graph(nodes, mst_edges, spof_set, pos, type_lookup))
+
+            # 연결 상태 요약
+            st.success("✅ 모든 거점이 최소 비용 복구 통신망으로 연결되었습니다.")
+            if spof_nodes:
+                st.warning(f"⚠️ 단일 장애점 {len(spof_nodes)}개 — MST(트리) 구조 특성상 잎 노드를 제외한 모든 거점이 장애 시 통신망 분리를 유발할 수 있습니다.")
+
+            # 상세 표 (기본 접힘)
+            with st.expander("📋 상세 데이터 (MST 간선 / SPOF 목록)"):
+                st.markdown("**최소 비용 복구 통신망 (MST 간선)**")
+                if use_real:
+                    st.dataframe(_edge_rows_str(mst_edges), use_container_width=True, height=300)
+                else:
+                    st.dataframe(edge_rows(mst_edges), use_container_width=True)
+                st.markdown("**단일 장애점(SPOF) 목록**")
+                st.dataframe(
+                    [{"node_id": n, "유형": type_lookup.get(n, "")} for n in spof_nodes],
+                    use_container_width=True, height=300,
+                )
     else:
         st.write("")
         render_module_guide("M5")

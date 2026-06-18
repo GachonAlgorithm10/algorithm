@@ -135,24 +135,24 @@ if st.session_state["current_page"] == "HOME":
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 style='text-align: center; color: #0f172a; font-weight: 900; font-size: 3.5rem; letter-spacing: -1.5px;'>🚨 대규모 재난 대피 및 물류 최적화 시스템</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #64748b; font-size: 1.3rem; margin-bottom: 4rem;'>가천대학교 알고리즘 기말 프로젝트 | Team 알고싶조 <br><br>담당하시는 임무에 맞는 권한으로 시스템에 접속해 주십시오.</p>", unsafe_allow_html=True)
-    
+    st.markdown("<h1 style='text-align: center; color: var(--text-color); font-weight: 900; font-size: 3.5rem; letter-spacing: -1.5px;'>🚨 대규모 재난 대피 및 물류 최적화 시스템</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: var(--text-color); opacity: 0.6; font-size: 1.3rem; margin-bottom: 4rem;'>가천대학교 알고리즘 기말 프로젝트 | Team 알고싶조 <br><br>담당하시는 임무에 맞는 권한으로 시스템에 접속해 주십시오.</p>", unsafe_allow_html=True)
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         with st.container(border=True):
-            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #1E3A8A;'>public</span><h2 style='margin-top: 20px; color: #1E3A8A; font-weight: 800;'>통합 관제</h2><p style='color: #64748b; font-size: 1.1rem;'>재난 확산 및 전체 현황 모니터링</p></div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #3B82F6;'>public</span><h2 style='margin-top: 20px; color: var(--text-color); font-weight: 800;'>통합 관제</h2><p style='color: var(--text-color); opacity: 0.6; font-size: 1.1rem;'>재난 확산 및 전체 현황 모니터링</p></div>", unsafe_allow_html=True)
             st.button("접속하기", key="btn_role_1", use_container_width=True, type="primary", on_click=navigate_to, args=("M2",))
 
     with col2:
         with st.container(border=True):
-            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #1E3A8A;'>ambulance</span><h2 style='margin-top: 20px; color: #1E3A8A; font-weight: 800;'>대피·구호</h2><p style='color: #64748b; font-size: 1.1rem;'>대피소 배분 및 부상자 이송 스케줄링</p></div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #3B82F6;'>ambulance</span><h2 style='margin-top: 20px; color: var(--text-color); font-weight: 800;'>대피·구호</h2><p style='color: var(--text-color); opacity: 0.6; font-size: 1.1rem;'>대피소 배분 및 부상자 이송 스케줄링</p></div>", unsafe_allow_html=True)
             st.button("접속하기", key="btn_role_2", use_container_width=True, type="primary", on_click=navigate_to, args=("M1",))
 
     with col3:
         with st.container(border=True):
-            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #1E3A8A;'>router</span><h2 style='margin-top: 20px; color: #1E3A8A; font-weight: 800;'>복구 계획</h2><p style='color: #64748b; font-size: 1.1rem;'>비상 통신망 및 인프라 복구 설계</p></div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; padding: 2.5rem 0 2rem 0;'><span class='material-symbols-rounded' style='font-size: 6rem; color: #3B82F6;'>router</span><h2 style='margin-top: 20px; color: var(--text-color); font-weight: 800;'>복구 계획</h2><p style='color: var(--text-color); opacity: 0.6; font-size: 1.1rem;'>비상 통신망 및 인프라 복구 설계</p></div>", unsafe_allow_html=True)
             st.button("접속하기", key="btn_role_3", use_container_width=True, type="primary", on_click=navigate_to, args=("M5",))
 
 else:
