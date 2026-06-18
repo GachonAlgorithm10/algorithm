@@ -120,6 +120,11 @@ class DataLoader:
                 return node
         return None
 
+    def name_of(self, node_id: str) -> str:
+        """node_id → 실제 건물명. 없으면 node_id 그대로 반환."""
+        node = self.get_node_by_id(node_id)
+        return node.get("name", node_id) if node else node_id
+
     def get_risk(self, node_id: str, default: float = 0.0) -> float:
         rm = st.session_state.get("risk_map", {})
         if not isinstance(rm, dict):

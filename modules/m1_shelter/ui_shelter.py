@@ -84,12 +84,12 @@ def _build_assignment_map(match_results, citizens, shelters, node_lookup):
                         color="#4C8BF5", weight=1.5, opacity=0.55, dash_array="4").add_to(m)
         folium.CircleMarker([cn["lat"], cn["lng"]], radius=5, color="#1971C2",
                             fill=True, fill_opacity=0.9,
-                            popup=folium.Popup(f"시민 그룹: {cid}<br>인원: {count}", max_width=250)).add_to(m)
+                            popup=folium.Popup(f"시민 그룹<br>위치: {cn.get('name', cid)}<br>인원: {count}", max_width=250)).add_to(m)
         if sid not in drawn:
             cap = shelters[s_idx].get("capacity", 0)
             folium.Marker([sn["lat"], sn["lng"]],
                           icon=folium.Icon(color="red", icon="home", prefix="fa"),
-                          popup=folium.Popup(f"대피소: {sid}<br>수용량: {cap:,}명", max_width=250)).add_to(m)
+                          popup=folium.Popup(f"대피소: {sn.get('name', sid)}<br>수용량: {cap:,}명", max_width=250)).add_to(m)
             drawn.add(sid)
     return m
 

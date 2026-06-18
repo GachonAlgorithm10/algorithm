@@ -8,6 +8,8 @@ from core.viz_util import style_fig, show
 
 from core.map_util import render_module_guide
 
+from core.data_loader import get_loader
+
 try:
     from .supply import compute, generate_sample_shelter_assign, results_to_rows
 except ImportError:
@@ -94,13 +96,14 @@ def run() -> None:
             st.write("---")
             # 부족 대피소 우선 추출 (예외 우선)
             sd = result["supply_demand"]
+            _nl = get_loader()
             shortages = []
             for sid, v in sd.items():
                 sw = round(v["need_water_L"] - v["alloc_water_L"], 1)
                 sf = round(v["need_food_kg"] - v["alloc_food_kg"], 1)
                 sm = round(v["need_med"] - v["alloc_med"], 1)
                 if sw > 0.1 or sf > 0.1 or sm > 0.1:
-                    shortages.append({"대피소": sid, "부족(물,L)": sw,
+                    shortages.append({"대피소": _nl.name_of(sid), "부족(물,L)": sw,
                                       "부족(식량,kg)": sf, "부족(의약품)": sm})
 
             if shortages:

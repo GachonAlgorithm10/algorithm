@@ -8,6 +8,8 @@ from core.viz_util import style_fig, show
 
 from core.map_util import render_module_guide
 
+from core.data_loader import get_loader
+
 try:
     from .budget import compute, generate_sample_zones, results_to_rows
 except ImportError:
@@ -92,8 +94,10 @@ def run() -> None:
             selected = [z for z in result["selected_zones"] if z["selected"]]
             selected.sort(key=lambda z: z["effect"], reverse=True)
             st.markdown("#### 복구 착수 우선순위")
+            _nl = get_loader()
             decision_rows = [
-                {"순위": i, "구역": z["zone_id"], "노드": z.get("node_id", "-"),
+                {"순위": i, "구역": z["zone_id"],
+                 "거점": _nl.name_of(z.get("node_id", "")),
                  "복구비용(백만)": z["cost"], "복구효과": z["effect"]}
                 for i, z in enumerate(selected, 1)
             ]
